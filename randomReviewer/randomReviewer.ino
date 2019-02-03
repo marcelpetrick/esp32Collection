@@ -1,20 +1,24 @@
-/*
-    This sketch demonstrates how to scan WiFi networks.
-    The API is almost the same as with the WiFi Shield library,
-    the most obvious difference being the different file you need to include:
-*/
-#include "WiFi.h"
+// after booting:
+// scan networks and print them to the matrix
+// if button "boot" clicked (GPIO0?), then select randomly one of the entries from the list of possible reviewers
+
+// includes
 #include "SPI.h"
+#include "WiFi.h"
 #include "LedMatrix.h"
 
-#define NUMBER_OF_DEVICES 1 //number of led matrix connect in series
+// defines
+#define NUMBER_OF_DEVICES 1 //number of led matrix connected serially
 #define CS_PIN 15
 #define CLK_PIN 14
-#define MISO_PIN 2 //we do not use this pin just fill to match constructor
+#define MISO_PIN 2 //we do not use this pin - just fill to match constructor
 #define MOSI_PIN 12
 
+// global stuff
 LedMatrix ledMatrix = LedMatrix(NUMBER_OF_DEVICES, CLK_PIN, MISO_PIN, MOSI_PIN, CS_PIN);
 String output;
+
+//----------------------------------------------------------------------------------------------------
 
 void setup()
 {
@@ -28,8 +32,9 @@ void setup()
   Serial.println("Setup done");
 
   ledMatrix.init();
-  //ledMatrix.setText("ruzica is cute <3");
 }
+
+//----------------------------------------------------------------------------------------------------
 
 void loop()
 {
