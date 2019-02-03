@@ -40,7 +40,7 @@ void setup()
 
 bool checkBootButton()
 {
-  Serial.println("checkBootButton");
+  Serial.println("checkBootButton()");
 
   bool returnValue(false);
 
@@ -61,15 +61,30 @@ bool checkBootButton()
 
 //----------------------------------------------------------------------------------------------------
 
+#define PEOPLEARRAYSIZE 7
 // @brief function to determine randomly inside a given array one of the values
 // @returns String like "MP was picked".
 String getRandomReviewer()
 {
   Serial.println("getRandomReviewer()");
 
-  // TODO
+  // init the array of possible reviewers
+  String people[PEOPLEARRAYSIZE] = {
+    "GSC",
+    "MSA",
+    "MPE",
+    "NLE",
+    "RNI",
+    "MLA",
+    "HGA",
+  };
+
+  // randomly determine one
+
+  // create the result-string
   String returnValue = "Fix String :)";
 
+  // and return it
   return returnValue;
 }
 
@@ -81,8 +96,9 @@ void loop()
   bool const gpio0pressed = checkBootButton();
   if (gpio0pressed)
   {
+    String resultString = getRandomReviewer();
     Serial.println("TODO implement - do something now here");
-    // TODO
+    Serial.println(resultString);
   }
 
   Serial.println("scan start");
