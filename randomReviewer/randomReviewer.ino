@@ -32,10 +32,34 @@ void setup()
   Serial.println("Setup done");
 
   ledMatrix.init();
+
+  ledMatrix.setText("auf geht es!");
 }
 
 //----------------------------------------------------------------------------------------------------
 
+bool checkBootButton()
+{
+  Serial.println("checkBootButton");
+
+  bool returnValue(false);
+
+// after booting the GPIO0 for BOOT is free for use
+  if (digitalRead(0) == HIGH)
+  {
+Serial.println("--if");
+returnValue = true;
+  }
+  else
+  {
+    Serial.println("--else");
+    // dot nothing
+  }
+
+  return returnValue;
+}
+
+//--
 void loop()
 {
   Serial.println("scan start");
