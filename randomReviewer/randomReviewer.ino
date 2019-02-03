@@ -51,12 +51,12 @@ bool checkBootButton()
   // after booting the GPIO0 for BOOT is free for use
   if (digitalRead(inPin) == HIGH)
   {
-    Serial.println("--if :)");
+    //Serial.println("--if :)");
     returnValue = true;
   }
   else
   {
-    Serial.println("--else");
+    //Serial.println("--else");
     // dot nothing
   }
 
@@ -83,13 +83,12 @@ String getRandomReviewer()
     "HGA",
   };
 
-  // randomly determine one
-  Serial.println(random(10));
+  // randomly determine an index
   int const randomIndex = random(PEOPLEARRAYSIZE); // exclusive the last value
   Serial.println(randomIndex);
 
   // create the result-string
-  String returnValue = people[randomIndex] + " is your reviewer! :)";
+  String returnValue = people[randomIndex] + " is your guy! :)";
 
   // and return it
   return returnValue;
@@ -104,11 +103,10 @@ void loop()
   if (gpio0pressed)
   {
     String resultString = getRandomReviewer();
-    Serial.println("TODO implement - do something now here");
     Serial.println(resultString);
 
     ledMatrix.setText(resultString);
-    for (int painter = 0; painter < 100; painter++)
+    for (int painter = 0; painter < 150; painter++)
     {
       ledMatrix.clear();
       ledMatrix.scrollTextLeft();
@@ -123,16 +121,20 @@ void loop()
   // WiFi.scanNetworks will return the number of networks found
   int const n = WiFi.scanNetworks();
   Serial.println("scan done");
-  if (n == 0) {
+  if (n == 0)
+  {
     Serial.println("no networks found");
     output += "no networks";
-  } else {
+  }
+  else
+  {
     Serial.print(n);
     Serial.println(" networks found");
     output += n;
     output += " networks";
 
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; ++i)
+    {
       // Print SSID and RSSI for each network found
       Serial.print(i + 1);
       Serial.print(": ");
@@ -141,14 +143,14 @@ void loop()
       Serial.print(WiFi.RSSI(i));
       Serial.print(")");
       Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
-      delay(10);
+      //delay(10);
     }
   }
   Serial.println("");
 
   Serial.println(output);
   ledMatrix.setText(output);
-  for (int painter = 0; painter < 100; painter++)
+  for (int painter = 0; painter < 200; painter++)
   {
     if (gpio0pressed)
     {
