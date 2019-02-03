@@ -14,6 +14,8 @@
 #define MISO_PIN 2 //we do not use this pin - just fill to match constructor
 #define MOSI_PIN 12
 
+int inPin = 0;
+
 // global stuff
 LedMatrix ledMatrix = LedMatrix(NUMBER_OF_DEVICES, CLK_PIN, MISO_PIN, MOSI_PIN, CS_PIN);
 String output;
@@ -22,6 +24,8 @@ String output;
 
 void setup()
 {
+  pinMode(inPin, INPUT);
+  
   Serial.begin(115200);
 
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
@@ -45,7 +49,7 @@ bool checkBootButton()
   bool returnValue(false);
 
   // after booting the GPIO0 for BOOT is free for use
-  if (digitalRead(0) == HIGH)
+  if (digitalRead(inPin) == HIGH)
   {
     Serial.println("--if :)");
     returnValue = true;
