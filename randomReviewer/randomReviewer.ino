@@ -36,8 +36,6 @@ void setup()
   Serial.println("Setup done");
 
   ledMatrix.init();
-
-  ledMatrix.setText("auf geht es!");
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -106,7 +104,7 @@ void loop()
     Serial.println(resultString);
 
     ledMatrix.setText(resultString);
-    for (int painter = 0; painter < 150; painter++)
+    for (int painter = 0; painter < 265; painter++)
     {
       ledMatrix.clear();
       ledMatrix.scrollTextLeft();
@@ -114,6 +112,7 @@ void loop()
       ledMatrix.commit();
       delay(50);
     }
+    ledMatrix.clear();
   }
 
   Serial.println("scan start");
@@ -150,9 +149,9 @@ void loop()
 
   Serial.println(output);
   ledMatrix.setText(output);
-  for (int painter = 0; painter < 200; painter++)
+  for (int painter = 0; painter < 180; painter++)
   {
-    if (gpio0pressed)
+    if (checkBootButton())
     {
       Serial.println("skip now the scrolling!");
       break;
@@ -164,6 +163,7 @@ void loop()
     ledMatrix.commit();
     delay(50);
   }
+  ledMatrix.clear();
 
   output = "";
 }
