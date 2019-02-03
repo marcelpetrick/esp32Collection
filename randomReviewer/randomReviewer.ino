@@ -25,7 +25,7 @@ String output;
 void setup()
 {
   pinMode(inPin, INPUT);
-  
+
   Serial.begin(115200);
 
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
@@ -60,7 +60,7 @@ bool checkBootButton()
     // dot nothing
   }
 
-  return returnValue;
+  return !returnValue;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -84,9 +84,12 @@ String getRandomReviewer()
   };
 
   // randomly determine one
+  Serial.println(random(10));
+  int const randomIndex = random(PEOPLEARRAYSIZE); // exclusive the last value
+  Serial.println(randomIndex);
 
   // create the result-string
-  String returnValue = "Fix String :)";
+  String returnValue = people[randomIndex] + " is your reviewer! :)";
 
   // and return it
   return returnValue;
@@ -103,6 +106,16 @@ void loop()
     String resultString = getRandomReviewer();
     Serial.println("TODO implement - do something now here");
     Serial.println(resultString);
+
+    ledMatrix.setText(resultString);
+    for (int painter = 0; painter < 100; painter++)
+    {
+      ledMatrix.clear();
+      ledMatrix.scrollTextLeft();
+      ledMatrix.drawText();
+      ledMatrix.commit();
+      delay(50);
+    }
   }
 
   Serial.println("scan start");
