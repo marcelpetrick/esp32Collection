@@ -44,11 +44,11 @@ bool checkBootButton()
 
   bool returnValue(false);
 
-// after booting the GPIO0 for BOOT is free for use
+  // after booting the GPIO0 for BOOT is free for use
   if (digitalRead(0) == HIGH)
   {
-Serial.println("--if");
-returnValue = true;
+    Serial.println("--if :)");
+    returnValue = true;
   }
   else
   {
@@ -59,13 +59,36 @@ returnValue = true;
   return returnValue;
 }
 
-//--
+//----------------------------------------------------------------------------------------------------
+
+// @brief function to determine randomly inside a given array one of the values
+// @returns String like "MP was picked".
+String getRandomReviewer()
+{
+  Serial.println("getRandomReviewer()");
+
+  // TODO
+  String returnValue = "Fix String :)";
+
+  return returnValue;
+}
+
+//----------------------------------------------------------------------------------------------------
+
 void loop()
 {
+  Serial.println("###### loop() ######");
+  bool const gpio0pressed = checkBootButton();
+  if (gpio0pressed)
+  {
+    Serial.println("TODO implement - do something now here");
+    // TODO
+  }
+
   Serial.println("scan start");
 
   // WiFi.scanNetworks will return the number of networks found
-  int n = WiFi.scanNetworks();
+  int const n = WiFi.scanNetworks();
   Serial.println("scan done");
   if (n == 0) {
     Serial.println("no networks found");
@@ -94,14 +117,19 @@ void loop()
   ledMatrix.setText(output);
   for (int painter = 0; painter < 100; painter++)
   {
+    if (gpio0pressed)
+    {
+      Serial.println("skip now the scrolling!");
+      break;
+    }
+
     ledMatrix.clear();
     ledMatrix.scrollTextLeft();
     ledMatrix.drawText();
     ledMatrix.commit();
     delay(50);
   }
+
   output = "";
-  // Wait a bit before scanning again
-  // delay(5000);
 }
 
