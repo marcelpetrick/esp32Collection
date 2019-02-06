@@ -63,7 +63,7 @@ bool checkBootButton()
 
 //----------------------------------------------------------------------------------------------------
 
-#define PEOPLEARRAYSIZE 7
+#define PEOPLEARRAYSIZE 9
 // @brief function to determine randomly inside a given array one of the values
 // @returns String like "MP was picked".
 String getRandomReviewer()
@@ -78,7 +78,9 @@ String getRandomReviewer()
     "NLE",
     "RNI",
     "MLA",
-    "HGA",
+    "HGA", //7
+    "MDR",
+    "NKU", //9
   };
 
   // randomly determine an index
@@ -111,6 +113,13 @@ void loop()
       ledMatrix.drawText();
       ledMatrix.commit();
       delay(50);
+
+      // add some early abort
+      if (checkBootButton())
+      {
+          Serial.println("skip now the scrolling!");
+          break;
+      }
     }
     ledMatrix.clear();
   }
