@@ -1,10 +1,13 @@
 #include "DHT.h"
-//here we use 14 of ESP32 to read data
-#define DHTPIN 4
+
+// use G16 of ESP32 to read data
+const int DHTPin = 16;
+
 //our sensor is DHT11 type
 #define DHTTYPE DHT11
+
 //create an instance of DHT sensor
-DHT dht(DHTPIN, DHTTYPE);
+DHT dht(DHTPin, DHTTYPE);
 
 void setup()
 {
@@ -22,15 +25,18 @@ void loop() {
   // Check if any reads failed and exit early (to try again).
   if (isnan(h) || isnan(t)) {
     Serial.println("Failed to read from DHT sensor!");
+    delay(500); // wait a bit
     return;
   }
+  
   // print the result to Terminal
   Serial.print("Humidity: ");
   Serial.print(h);
   Serial.print(" %\t");
   Serial.print("Temperature: ");
   Serial.print(t);
-  Serial.println(" *C ");
+  Serial.println(" °C ");
+  
   //we delay a little bit for next read
   delay(2000);
 }
