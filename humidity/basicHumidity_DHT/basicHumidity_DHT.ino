@@ -1,5 +1,14 @@
 #include "DHT.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+uint8_t temprature_sens_read();
+#ifdef __cplusplus
+}
+#endif
+uint8_t temprature_sens_read();
+
 // use G23 of ESP32 to read data
 const int DHTPin = 23;
 
@@ -36,6 +45,11 @@ void loop() {
   Serial.print("Temperature: ");
   Serial.print(temperature);
   Serial.println(" °C ");
+
+  // Convert raw temperature in F to Celsius degrees
+  Serial.print("Temperature (internal): ");
+  Serial.print((temprature_sens_read() - 32) / 1.8);
+  Serial.println(" C");
 
   // delay a bit for the next read
   delay(2000);
