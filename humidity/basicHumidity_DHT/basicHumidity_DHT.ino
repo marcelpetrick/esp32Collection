@@ -30,6 +30,8 @@ DHT dht(DHTPin, DHTTYPE);
 void setup()
 {
   Serial.begin(115200);
+  //Serial.begin(9600);
+  
   Serial.println("DHT22 sensor!");
   //call begin to start sensor
   dht.begin();
@@ -41,7 +43,7 @@ void setup()
 
   // default settings
   // (you can also pass in a Wire library object like &Wire2)
-  status = bme.begin(0x76);
+  status = bme.begin(0x77);
   if (!status)
   {
     Serial.println("Could not find a valid BME280 sensor, check wiring!");
