@@ -1,6 +1,7 @@
+// randomReviwer: smol fun project to relieve the stress of finding a fitting reviewer
+//
 // after booting:
-// scan networks and print them to the matrix
-// if button "boot" clicked (GPIO0?), then select randomly one of the entries from the list of possible reviewers
+// if button "boot" clicked (GPIO17) -> then select randomly one of the entries from the list of possible reviewers
 
 // includes
 #include "SPI.h"
@@ -14,18 +15,19 @@
 #define MISO_PIN 2 //we do not use this pin - just fill to match constructor
 #define MOSI_PIN 12
 
-int inPin = 0;
+// button defines
+int bootButtonPin{0};
 int bigDomePin{17};
 
 // global stuff
 LedMatrix ledMatrix = LedMatrix(NUMBER_OF_DEVICES, CLK_PIN, MISO_PIN, MOSI_PIN, CS_PIN);
-String output;
 
 //----------------------------------------------------------------------------------------------------
 
 void setup()
 {
-  pinMode(inPin, INPUT);
+  pinMode(bootButtonPin, INPUT);
+  pinMode(bigDomePin, INPUT);
 
   Serial.begin(115200);
 
@@ -34,33 +36,33 @@ void setup()
   WiFi.disconnect();
   delay(100);
 
-  Serial.println("Setup done");
-
   ledMatrix.init();
+
+  Serial.println("*** Setup done ***");
 }
 
 //----------------------------------------------------------------------------------------------------
 
-bool checkBootButton()
+bool checkButtons()
 {
-  Serial.println("checkBootButton()");
+  //Serial.println("checkButtons()");
 
   bool returnValue(false);
 
   // after booting the GPIO0 for BOOT is free for use
-  if (digitalRead(inPin) == HIGH)
-  {
-    Serial.println("inPin pressed");
-    returnValue = true;
-  }
+  //  if (digitalRead(bootButtonPin) == HIGH)
+  //  {
+  //    Serial.println("bootButtonPin pressed");
+  //    returnValue |= true;
+  //  }
 
   if (digitalRead(bigDomePin) == HIGH)
   {
     Serial.println("bigDomePin pressed");
-    returnValue = true;
+    returnValue |= true;
   }
-  
-  return !returnValue;
+
+  return returnValue;
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -99,15 +101,15 @@ String getRandomReviewer()
 
 void loop()
 {
-  Serial.println("###### loop() ######");
-  bool const gpio0pressed = checkBootButton();
-  if (gpio0pressed)
+  ledMatrix.clear();
+  bool const buttonWasPressed = checkButtons();
+  if (buttonWasPressed)
   {
-    String resultString = getRandomReviewer();
+    String const resultString = getRandomReviewer();
     Serial.println(resultString);
 
     ledMatrix.setText(resultString);
-    for (int painter = 0; painter < 265; painter++)
+    for (int painter = 0; painter < 333; painter++)
     {
       ledMatrix.clear();
       ledMatrix.scrollTextLeft();
@@ -115,66 +117,15 @@ void loop()
       ledMatrix.commit();
       delay(50);
 
-      // add some early abort
-      if (checkBootButton())
-      {
-          Serial.println("skip now the scrolling!");
-          break;
-      }
-    }
-    ledMatrix.clear();
-  }
-
-  Serial.println("scan start");
-
-  // WiFi.scanNetworks will return the number of networks found
-  int const n = WiFi.scanNetworks();
-  Serial.println("scan done");
-  if (n == 0)
-  {
-    Serial.println("no networks found");
-    output += "no networks";
-  }
-  else
-  {
-    Serial.print(n);
-    Serial.println(" networks found");
-    output += n;
-    output += " networks";
-
-    for (int i = 0; i < n; ++i)
-    {
-      // Print SSID and RSSI for each network found
-      Serial.print(i + 1);
-      Serial.print(": ");
-      Serial.print(WiFi.SSID(i));
-      Serial.print(" (");
-      Serial.print(WiFi.RSSI(i));
-      Serial.print(")");
-      Serial.println((WiFi.encryptionType(i) == WIFI_AUTH_OPEN) ? " " : "*");
-      //delay(10);
-    }
-  }
-  Serial.println("");
-
-  Serial.println(output);
-  ledMatrix.setText(output);
-  for (int painter = 0; painter < 180; painter++)
-  {
-    if (checkBootButton())
-    {
-      Serial.println("skip now the scrolling!");
-      break;
+//      // add some early abort
+//      if (checkButtons())
+//      {
+//        Serial.println("skip now the scrolling!");
+//        break;
+//      }
     }
 
     ledMatrix.clear();
-    ledMatrix.scrollTextLeft();
-    ledMatrix.drawText();
-    ledMatrix.commit();
-    delay(50);
   }
-  ledMatrix.clear();
-
-  output = "";
 }
 
