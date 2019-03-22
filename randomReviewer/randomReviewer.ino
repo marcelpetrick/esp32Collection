@@ -15,6 +15,7 @@
 #define MOSI_PIN 12
 
 int inPin = 0;
+int bigDomePin{17};
 
 // global stuff
 LedMatrix ledMatrix = LedMatrix(NUMBER_OF_DEVICES, CLK_PIN, MISO_PIN, MOSI_PIN, CS_PIN);
@@ -49,23 +50,24 @@ bool checkBootButton()
   // after booting the GPIO0 for BOOT is free for use
   if (digitalRead(inPin) == HIGH)
   {
-    //Serial.println("--if :)");
+    Serial.println("inPin pressed");
     returnValue = true;
   }
-  else
-  {
-    //Serial.println("--else");
-    // dot nothing
-  }
 
+  if (digitalRead(bigDomePin) == HIGH)
+  {
+    Serial.println("bigDomePin pressed");
+    returnValue = true;
+  }
+  
   return !returnValue;
 }
 
 //----------------------------------------------------------------------------------------------------
 
-#define PEOPLEARRAYSIZE 9
+#define PEOPLEARRAYSIZE 8
 // @brief function to determine randomly inside a given array one of the values
-// @returns String like "MP was picked".
+// @returns String like "MPE was picked".
 String getRandomReviewer()
 {
   Serial.println("getRandomReviewer()");
@@ -77,10 +79,9 @@ String getRandomReviewer()
     "MPE",
     "NLE",
     "RNI",
-    "MLA",
-    "HGA", //7
+    "HGA",
     "MDR",
-    "NKU", //9
+    "NKU",
   };
 
   // randomly determine an index
