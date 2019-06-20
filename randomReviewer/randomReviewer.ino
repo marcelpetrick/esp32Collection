@@ -1,5 +1,7 @@
-// randomReviwer: smol fun project to relieve the stress of finding a fitting reviewer
+//! @brief randomReviewer: smol fun project to relieve the stress of finding a fitting reviewer
+//! @author mail@marcelpetrick.it
 //
+// How to use?
 // after booting:
 // if button "boot" clicked (GPIO17) -> then select randomly one of the entries from the list of possible reviewers
 
