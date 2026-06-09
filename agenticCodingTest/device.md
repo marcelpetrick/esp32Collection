@@ -1,70 +1,146 @@
 # Device Investigation
 
-## Summary
+## Identification
 
-The connected USB device is a WCH/QinHeng CH9102-class USB-to-UART serial converter, not enough by itself to identify the target microcontroller or board behind the serial adapter.
+The connected board is very likely a **LILYGO / TTGO T-Display ESP32, CH9102, 16 MB flash variant**.
 
-The adapter is exposed on Linux as `/dev/ttyACM0` via the `cdc_acm` driver.
+Evidence:
 
-Serial probing of the running firmware was not possible in this session because `/dev/ttyACM0` is owned by `root:uucp` with mode `660`, and the current user is not a member of `uucp`.
+- USB serial bridge is WCH/QinHeng `CH9102` class: USB ID `1a86:55d4`, product `USB Single Serial`.
+- Target MCU detected through the bridge is `ESP32-D0WDQ6`, revision `v1.1`.
+- Flash detected by `esptool`: `16MB`.
+- Current firmware strings and boot behavior match the T-Display factory test: Wi-Fi scan, voltage monitor, left/right buttons, display output, and deep sleep.
+- LILYGO documents the T-Display CH9102 variant as ESP32 with Wi-Fi/Bluetooth, CH9102 serial, optional 4 MB/16 MB flash, buttons, battery voltage detection, and 1.14 inch ST7789 display.
 
-## Observed USB Device
+## Access
 
-- USB vendor/product: `1a86:55d4`
-- Vendor: QinHeng Electronics / WCH
-- Product string: `USB Single Serial`
+- Serial device: `/dev/ttyACM0`
+- Stable path: `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B0A006803-if00`
 - USB serial number: `5B0A006803`
-- Kernel driver: `cdc_acm`
-- TTY device: `/dev/ttyACM0`
-- Stable by-id path: `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B0A006803-if00`
-- USB class: CDC ACM serial
-- Negotiated USB speed: Full Speed, 12 Mbps
-- Reported USB device revision: `4.44`
+- Boot log baud rate: `115200`
+- `esptool` probing worked at `115200`; flash reads worked at `460800`.
 
-## Device Identity
+## ESP32 Details
 
-The USB ID `1a86:55d4` is listed as `CH9102 serial converter` in the USB ID database. WCH's Linux driver documentation also describes the CH9102 family as USB-to-UART chips that can work with the standard Linux `cdc_acm` driver.
+- Chip: `ESP32-D0WDQ6`
+- Revision: `v1.1`
+- CPU: dual-core Xtensa LX6, rated for 240 MHz
+- Crystal: `40MHz`
+- MAC: `88:13:bf:fc:c9:74`
+- Wireless hardware capability: Wi-Fi and Bluetooth/BLE
+- ADC calibration: eFuse Vref present, `1114 mV`
+- Flash: `16MB`, manufacturer `0x85`, device `0x2018`
+- Flash voltage: `3.3V`
+- Bootloader/app image flash mode: `DIO`, `80m`
+- Secure boot: off
+- Flash encryption: off
+- UART download mode: enabled
+- JTAG disabled: no
+- PSRAM: not detected during probing; treat as disabled unless proven otherwise
 
-This means the directly visible USB device is the serial bridge. The actual attached device could be an ESP32, another microcontroller, or another UART target, but it cannot be confirmed from the USB descriptor alone.
+## Current Flash Layout
 
-## Firmware Capabilities
+Partition table:
 
-Current firmware capabilities could not be confirmed.
+| Name | Type | Subtype | Offset | Size |
+| --- | --- | --- | --- | --- |
+| `nvs` | data | nvs | `0x9000` | `0x5000` |
+| `otadata` | data | ota | `0xe000` | `0x2000` |
+| `app0` | app | ota_0 | `0x10000` | `0x140000` |
+| `app1` | app | ota_1 | `0x150000` | `0x140000` |
+| `spiffs` | data | spiffs | `0x290000` | `0x170000` |
 
-What was checked:
+Notes:
 
-- The serial adapter is present and enumerates correctly.
-- The repository currently contains no firmware source, build config, binaries, or project metadata that would identify the current firmware.
-- No serial console output or command response could be read because opening `/dev/ttyACM0` failed with `Permission denied`.
-- No evidence was found for application capabilities, command protocol, analog I/O support, wireless features, sensor support, or board type.
+- Physical flash is 16 MB, but the current partition layout only uses the first 4 MB.
+- OTA data indicates `app0` is active (`seq=1`); `app1` is erased.
+- `app0` SHA-256 dump hash: `dbb326c6078012e1bf9bd3498e8be130ee1b0e61bf6e7b66640c3d0a25b82b81`
+- `app1` SHA-256 dump hash: `35805909a516a528e396b6ea22dab437b6f1c703afe92e92dddfa0243bfae738` (erased slot)
 
-## Access Blocker
+## Current Firmware
 
-Current device permissions:
+The installed application appears to be a T-Display factory/demo firmware built with the Arduino ESP32 core over ESP-IDF.
+
+Observed boot output at `115200`:
 
 ```text
-crw-rw---- 1 root uucp ... /dev/ttyACM0
+rst:0x1 (POWERON_RESET),boot:0x13 (SPI_FAST_FLASH_BOOT)
+mode:DIO, clock div:1
+entry 0x4008069c
+Start
 ```
 
-Current user groups do not include `uucp`.
+Notable strings in the active app:
 
-To test the firmware over serial, add the user to `uucp` and start a new login session, or temporarily change the device permissions:
+- `Start`
+- `Scan Network`
+- `btn press wifi scan`
+- `[WiFi Scan]`
+- `Detect Voltage..`
+- `Voltage :`
+- `[Voltage Monitor]`
+- `Press again to wake up`
+- `RightButtonLongPress:`
+- `[Deep Sleep]`
+- `LeftButton:`
+- `RightButton:`
+- `v3.2.3`
+- `master`
 
-```sh
-sudo usermod -aG uucp "$USER"
-```
+Inferred firmware capabilities:
 
-After reconnecting or starting a new session, a basic probe can be retried with:
+- Drives the onboard TFT display.
+- Uses two onboard buttons.
+- Scans Wi-Fi networks.
+- Reads and displays battery/input voltage through ADC calibration.
+- Enters deep sleep and wakes from a button.
+- Includes SPIFFS support in the partition table.
+- Includes OTA-capable partitioning, although only `app0` is currently populated.
 
-```sh
-picocom -b 115200 /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B0A006803-if00
-```
+No command-line serial console was found. Passive reads and simple `help`, `?`, `version`, `ver`, and `info` probes produced no application response.
 
-Other common baud rates to try if there is no output: `9600`, `74880`, and `921600`.
+## NVS
+
+NVS was dumped from `0x9000` length `0x5000` to `/tmp/esp32-nvs.bin`.
+
+Visible key names include standard ESP32 Wi-Fi storage entries:
+
+- `nvs.net80211`
+- `sta.ssid`
+- `sta.pswd`
+- `sta.pmk`
+- `sta.chan`
+- `sta.bssid`
+- `ap.ssid`
+- `ap.passwd`
+- `ap.pmk`
+- `ap.chan`
+- `cal_data`
+
+The available local NVS tool can generate/encrypt/decrypt partitions but did not provide a plain decoder here, so only key names were extracted.
+
+## Programming Notes
+
+For future firmware work, target this as a **classic ESP32 T-Display**, not ESP32-S3/C3.
+
+Recommended starting configuration:
+
+- Board family: ESP32
+- Board profile: `ESP32 Dev Module` or a `LILYGO TTGO T-Display` profile
+- Flash size: `16MB`
+- PSRAM: disabled
+- Flash mode: `DIO`
+- Flash frequency: `80MHz`
+- Upload port: `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B0A006803-if00`
+- Serial monitor: `115200`
+- Display driver expectation: ST7789, 135 x 240, SPI
+
+If reusing the current partition style, preserve the offsets above. If the project needs the full flash, define a new 16 MB partition table rather than assuming the current 4 MB layout uses all available flash.
 
 ## Sources
 
-- Local `lsusb -v` and `udevadm info` output from the connected device.
-- Local `/dev/serial/by-id` symlink inspection.
+- Local `lsusb -v`, `udevadm`, `esptool`, `espefuse`, serial boot-log, and flash metadata output.
 - USB ID database entry for `1a86:55d4`: `https://usb-ids.gowdy.us/read/UD/1a86/55d4`
 - WCH Linux driver documentation: `https://github.com/WCHSoftGroup/ch343ser_linux`
+- LILYGO T-Display product page: `https://lilygo.cc/products/t-display`
+- T-Display factory-test behavior reference: `https://protosupplies.com/product/lilygo-esp32-t-display-development-board/`
