@@ -2,7 +2,7 @@
 
 ## Identification
 
-The connected board is very likely a **LILYGO / TTGO T-Display ESP32, CH9102, 16 MB flash variant**.
+The connected board is a **TENSTAR T-Display ESP32 clone of the LILYGO / TTGO T-Display ESP32, CH9102, 16 MB flash variant**.
 
 Evidence:
 
@@ -11,6 +11,8 @@ Evidence:
 - Flash detected by `esptool`: `16MB`.
 - Current firmware strings and boot behavior match the T-Display factory test: Wi-Fi scan, voltage monitor, left/right buttons, display output, and deep sleep.
 - LILYGO documents the T-Display CH9102 variant as ESP32 with Wi-Fi/Bluetooth, CH9102 serial, optional 4 MB/16 MB flash, buttons, battery voltage detection, and 1.14 inch ST7789 display.
+- Purchase listing provided by the owner names it as `TENSTAR T-Display ESP32-D0WD CH9102 Chip 16 MB WiFi ... 1.14 inch LCD` with selected option `CH9102F 16MB`.
+- A buyer review on that listing reports `ESP32-DOWDQ5`, `Winbond 25Q128JVSO (128 Mbit)`, `ST7789`, and `CH9102F`; this matches the local probe except the local chip probe identified `ESP32-D0WDQ6`.
 
 ## Access
 
@@ -121,7 +123,7 @@ The available local NVS tool can generate/encrypt/decrypt partitions but did not
 
 ## Programming Notes
 
-For future firmware work, target this as a **classic ESP32 T-Display**, not ESP32-S3/C3.
+For future firmware work, target this as a **classic ESP32 T-Display clone**, not ESP32-S3/C3.
 
 Recommended starting configuration:
 
@@ -144,3 +146,4 @@ If reusing the current partition style, preserve the offsets above. If the proje
 - WCH Linux driver documentation: `https://github.com/WCHSoftGroup/ch343ser_linux`
 - LILYGO T-Display product page: `https://lilygo.cc/products/t-display`
 - T-Display factory-test behavior reference: `https://protosupplies.com/product/lilygo-esp32-t-display-development-board/`
+- Owner-provided AliExpress listing details for TENSTAR T-Display ESP32-D0WD CH9102 16 MB variant.
