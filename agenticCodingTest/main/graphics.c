@@ -229,3 +229,72 @@ esp_err_t graphics_draw_sprite(graphics_t *graphics,
 
     return ESP_OK;
 }
+
+esp_err_t graphics_draw_sprite_scaled(graphics_t *graphics,
+                                      int32_t x,
+                                      int32_t y,
+                                      uint16_t width,
+                                      uint16_t height,
+                                      const uint16_t *pixels,
+                                      uint16_t transparent_key,
+                                      uint16_t screen_width,
+                                      uint16_t screen_height,
+                                      uint8_t scale)
+{
+    ESP_RETURN_ON_FALSE(graphics != NULL && graphics->display != NULL, ESP_ERR_INVALID_ARG, "graphics", "not initialized");
+    ESP_RETURN_ON_FALSE(pixels != NULL, ESP_ERR_INVALID_ARG, "graphics", "pixels required");
+    ESP_RETURN_ON_FALSE(scale > 0, ESP_ERR_INVALID_ARG, "graphics", "scale must be positive");
+
+    if (scale == 1) {
+        return graphics_draw_sprite(graphics, x, y, width, height, pixels, transparent_key, screen_width, screen_height);
+    }
+
+    for (uint16_t row = 0; row < height; row++) {
+        const uint16_t *rp = &pixels[(uint32_t)row * width];
+
+        for (uint8_t s = 0; s < scale; s++) {
+            int32_t py = y + (int32_t)row * scale + (int32_t)s;
+            if (py < 0 || py >= (int32_t)screen_height) {
+                continue;
+            }
+
+            uint16_t col = 0;
+            while (col < width) {
+                while (col < width && rp[col] == transparent_key) {
+                    col++;
+                }
+                if (col >= width) {
+                    break;
+                }
+
+                uint16_t run_start = col;
+                uint16_t run_color = rp[col];
+                while (col < width && rp[col] != transparent_key && rp[col] == run_color) {
+                    col++;
+                }
+                uint16_t run_len = col - run_start;
+
+                int32_t px = x + (int32_t)run_start * scale;
+                int32_t pw = (int32_t)run_len * scale;
+
+                if (px + pw <= 0 || px >= (int32_t)screen_width) {
+                    continue;
+                }
+                int32_t cx = px < 0 ? 0 : px;
+                int32_t cw = pw - (cx - px);
+                if (cx + cw > (int32_t)screen_width) {
+                    cw = (int32_t)screen_width - cx;
+                }
+                if (cw <= 0) {
+                    continue;
+                }
+
+                ESP_RETURN_ON_ERROR(
+                    st7789_display_draw_rect(graphics->display, (uint16_t)cx, (uint16_t)py, (uint16_t)cw, 1, run_color),
+                    "graphics", "scaled sprite rect failed");
+            }
+        }
+    }
+
+    return ESP_OK;
+}

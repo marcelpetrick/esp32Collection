@@ -47,3 +47,14 @@ esp_err_t graphics_draw_sprite(graphics_t *graphics,
                                uint16_t transparent_key,
                                uint16_t screen_width,
                                uint16_t screen_height);
+
+esp_err_t graphics_draw_sprite_scaled(graphics_t *graphics,
+                                      int32_t x,
+                                      int32_t y,
+                                      uint16_t width,
+                                      uint16_t height,
+                                      const uint16_t *pixels,
+                                      uint16_t transparent_key,
+                                      uint16_t screen_width,
+                                      uint16_t screen_height,
+                                      uint8_t scale);

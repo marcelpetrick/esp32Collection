@@ -18,14 +18,16 @@ static const char *TAG = "monster_game";
 #define DISP_W            BOARD_DISPLAY_WIDTH
 #define DISP_H            BOARD_DISPLAY_HEIGHT
 
-#define ZONE_SKY_END      165
-#define ZONE_GRASS_END    188
-#define ZONE_GROUND_END   210
-#define ZONE_HUD_START    226
+#define SPRITE_SCALE      2u   // all sprites drawn at 2x pixel scale
 
-#define PLAYER_SCREEN_X   60   // fixed horizontal position of player on display
-#define PLAYER_SCREEN_Y   210  // top of player sprite on display
-#define MONSTER_FEET_Y    165  // Y where monster feet touch the grass line
+#define ZONE_SKY_END      155
+#define ZONE_GRASS_END    185
+#define ZONE_GROUND_END   228
+#define ZONE_HUD_START    228
+
+#define PLAYER_SCREEN_X   60   // fixed horizontal center of player on display
+#define PLAYER_SCREEN_Y   196  // top of player sprite; bottom at 196+32=228=HUD
+#define MONSTER_FEET_Y    185  // Y where monster feet touch the grass line
 
 #define PLAYER_WALK_PX_S  60   // pixels per second
 #define MONSTER_WALK_PX_S 15
@@ -239,7 +241,7 @@ static int32_t monster_screen_x(const monster_game_t *game, int idx)
 
 static int32_t monster_screen_y(int idx)
 {
-    return MONSTER_FEET_Y - (int32_t)MONSTER_INFO[idx].h;
+    return MONSTER_FEET_Y - (int32_t)(MONSTER_INFO[idx].h * SPRITE_SCALE);
 }
 
 static esp_err_t clear_sprite_area(graphics_t *g,
@@ -269,7 +271,7 @@ static esp_err_t draw_state_indicator(monster_game_t *game, int idx, int32_t sx,
     monster_state_t state = game->monsters[idx].state;
     if (state != MSTATE_SLEEPING && state != MSTATE_PLAYING) return ESP_OK;
 
-    int32_t ix = sx + (int32_t)MONSTER_INFO[idx].w / 2 - 3;
+    int32_t ix = sx + (int32_t)(MONSTER_INFO[idx].w * SPRITE_SCALE) / 2 - 3;
     int32_t iy = sy - 10;
     if (iy < 0 || ix < 0 || ix >= DISP_W) return ESP_OK;
 
@@ -290,14 +292,14 @@ static esp_err_t draw_monster(monster_game_t *game, int idx)
     int32_t sy = monster_screen_y(idx);
     const monster_info_t *info = &MONSTER_INFO[idx];
 
-    if (sx + (int32_t)info->w < 0 || sx >= DISP_W) {
+    if (sx + (int32_t)(info->w * SPRITE_SCALE) < 0 || sx >= DISP_W) {
         return ESP_OK;
     }
 
     ESP_RETURN_ON_ERROR(
-        graphics_draw_sprite(g, sx, sy, info->w, info->h,
-                             info->sprite, SPRITE_KEY,
-                             DISP_W, DISP_H),
+        graphics_draw_sprite_scaled(g, sx, sy, info->w, info->h,
+                                    info->sprite, SPRITE_KEY,
+                                    DISP_W, DISP_H, SPRITE_SCALE),
         TAG, "draw monster sprite");
 
     return draw_state_indicator(game, idx, sx, sy);
@@ -313,7 +315,7 @@ static int32_t score_photo(const monster_game_t *game, int32_t *out_idx)
 
     for (int i = 0; i < MONSTER_SPECIES_COUNT; i++) {
         int32_t sx = monster_screen_x(game, i);
-        int32_t sw = (int32_t)MONSTER_INFO[i].w;
+        int32_t sw = (int32_t)(MONSTER_INFO[i].w * SPRITE_SCALE);
         if (sx + sw < 0 || sx >= DISP_W) continue;
 
         int32_t center = sx + sw / 2;
@@ -419,13 +421,11 @@ static esp_err_t draw_discovery(monster_game_t *game)
 
         // Draw the monster sprite large (centered)
         const monster_info_t *info = &MONSTER_INFO[game->photo_species];
-        int32_t ssx = (DISP_W - (int32_t)info->w * 2) / 2;
-        // draw 2x scaled version by drawing each pixel as 2x2 block
-        // (simplification: draw at 1x, centered)
+        int32_t ssx = (DISP_W - (int32_t)(info->w * SPRITE_SCALE)) / 2;
         int32_t ssy = 165;
         ESP_RETURN_ON_ERROR(
-            graphics_draw_sprite(g, ssx, ssy, info->w, info->h,
-                                 info->sprite, SPRITE_KEY, DISP_W, DISP_H),
+            graphics_draw_sprite_scaled(g, ssx, ssy, info->w, info->h,
+                                        info->sprite, SPRITE_KEY, DISP_W, DISP_H, SPRITE_SCALE),
             TAG, "disc sprite");
 
         ESP_RETURN_ON_ERROR(
@@ -483,10 +483,10 @@ static esp_err_t draw_result(monster_game_t *game)
         ESP_RETURN_ON_ERROR(graphics_draw_text(g, 12, 100, info->name, C_YELLOW, 1), TAG, "res name");
 
         // Draw monster sprite
-        int32_t ssx = (DISP_W - (int32_t)info->w) / 2;
+        int32_t ssx = (DISP_W - (int32_t)(info->w * SPRITE_SCALE)) / 2;
         ESP_RETURN_ON_ERROR(
-            graphics_draw_sprite(g, ssx, 130, info->w, info->h,
-                                 info->sprite, SPRITE_KEY, DISP_W, DISP_H),
+            graphics_draw_sprite_scaled(g, ssx, 130, info->w, info->h,
+                                        info->sprite, SPRITE_KEY, DISP_W, DISP_H, SPRITE_SCALE),
             TAG, "res sprite");
     }
 
@@ -562,11 +562,11 @@ static esp_err_t draw_book(monster_game_t *game)
 
             // Draw mini sprite on right
             const monster_info_t *info = &MONSTER_INFO[i];
-            int32_t ssx = DISP_W - (int32_t)info->w - 4;
-            int32_t ssy = y + (56 - (int32_t)info->h) / 2;
+            int32_t ssx = DISP_W - (int32_t)(info->w * SPRITE_SCALE) - 4;
+            int32_t ssy = y + (56 - (int32_t)(info->h * SPRITE_SCALE)) / 2;
             ESP_RETURN_ON_ERROR(
-                graphics_draw_sprite(g, ssx, ssy, info->w, info->h,
-                                     info->sprite, SPRITE_KEY, DISP_W, DISP_H),
+                graphics_draw_sprite_scaled(g, ssx, ssy, info->w, info->h,
+                                            info->sprite, SPRITE_KEY, DISP_W, DISP_H, SPRITE_SCALE),
                 TAG, "book sprite");
         } else {
             ESP_RETURN_ON_ERROR(graphics_draw_text(g, 4, y + 2,  "????",        C_TEXT, 1), TAG, "book unk");
@@ -604,28 +604,28 @@ static esp_err_t render_explore(monster_game_t *game)
             ESP_RETURN_ON_ERROR(draw_monster(game, i), TAG, "init monster");
         }
         // draw player
-        int32_t psx = PLAYER_SCREEN_X - (int32_t)(PLAYER_SPRITE_W / 2);
+        int32_t psx = PLAYER_SCREEN_X - (int32_t)(PLAYER_SPRITE_W * SPRITE_SCALE / 2);
         game->prev_player_sx = psx;
         ESP_RETURN_ON_ERROR(
-            graphics_draw_sprite(g, psx, PLAYER_SCREEN_Y,
-                                 PLAYER_SPRITE_W, PLAYER_SPRITE_H,
-                                 PLAYER_SPRITE, SPRITE_KEY, DISP_W, DISP_H),
+            graphics_draw_sprite_scaled(g, psx, PLAYER_SCREEN_Y,
+                                        PLAYER_SPRITE_W, PLAYER_SPRITE_H,
+                                        PLAYER_SPRITE, SPRITE_KEY, DISP_W, DISP_H, SPRITE_SCALE),
             TAG, "init player");
         game->needs_full_redraw = false;
         return ESP_OK;
     }
 
     // Dirty rect: clear old, draw new
-    int32_t new_psx = PLAYER_SCREEN_X - (int32_t)(PLAYER_SPRITE_W / 2);
+    int32_t new_psx = PLAYER_SCREEN_X - (int32_t)(PLAYER_SPRITE_W * SPRITE_SCALE / 2);
     if (new_psx != game->prev_player_sx) {
         ESP_RETURN_ON_ERROR(
             clear_sprite_area(g, game->prev_player_sx, PLAYER_SCREEN_Y,
-                              PLAYER_SPRITE_W, PLAYER_SPRITE_H),
+                              PLAYER_SPRITE_W * SPRITE_SCALE, PLAYER_SPRITE_H * SPRITE_SCALE),
             TAG, "clear player");
         ESP_RETURN_ON_ERROR(
-            graphics_draw_sprite(g, new_psx, PLAYER_SCREEN_Y,
-                                 PLAYER_SPRITE_W, PLAYER_SPRITE_H,
-                                 PLAYER_SPRITE, SPRITE_KEY, DISP_W, DISP_H),
+            graphics_draw_sprite_scaled(g, new_psx, PLAYER_SCREEN_Y,
+                                        PLAYER_SPRITE_W, PLAYER_SPRITE_H,
+                                        PLAYER_SPRITE, SPRITE_KEY, DISP_W, DISP_H, SPRITE_SCALE),
             TAG, "draw player");
         game->prev_player_sx = new_psx;
     }
@@ -642,8 +642,8 @@ static esp_err_t render_explore(monster_game_t *game)
 
         // clear old including potential indicator above
         int32_t clr_y = old_sy - 12;
-        uint16_t clr_h = info->h + 12;
-        ESP_RETURN_ON_ERROR(clear_sprite_area(g, old_sx, clr_y, info->w, clr_h), TAG, "clear m");
+        uint16_t clr_h = (uint16_t)(info->h * SPRITE_SCALE) + 12u;
+        ESP_RETURN_ON_ERROR(clear_sprite_area(g, old_sx, clr_y, (uint16_t)(info->w * SPRITE_SCALE), clr_h), TAG, "clear m");
 
         // draw at new position
         ESP_RETURN_ON_ERROR(draw_monster(game, i), TAG, "draw m");
