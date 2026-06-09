@@ -2,6 +2,7 @@
 #include "button_input.h"
 #include "display_smoke_test.h"
 #include "game_loop.h"
+#include "graphics.h"
 #include "st7789_display.h"
 
 #include "esp_chip_info.h"
@@ -16,12 +17,12 @@
 static const char *TAG = "tdisplay_games";
 
 typedef struct {
-    st7789_display_t *display;
+    graphics_t graphics;
     bool button_pressed[BUTTON_ID_COUNT];
     bool render_dirty;
 } app_context_t;
 
-static esp_err_t draw_button_feedback(st7789_display_t *display, button_id_t id, bool pressed)
+static esp_err_t draw_button_feedback(graphics_t *graphics, button_id_t id, bool pressed)
 {
     const board_config_t *board = board_config_get();
     const uint16_t width = 28;
@@ -29,8 +30,11 @@ static esp_err_t draw_button_feedback(st7789_display_t *display, button_id_t id,
     const uint16_t x = id == BUTTON_ID_LEFT ? 8 : board->display_width - width - 8;
     const uint16_t y = board->display_height - height - 8;
     const uint16_t color = pressed ? 0x07e0 : 0x2104;
+    const uint16_t label_x = x + 9;
+    const char *label = id == BUTTON_ID_LEFT ? "L" : "R";
 
-    return st7789_display_draw_rect(display, x, y, width, height, color);
+    ESP_RETURN_ON_ERROR(graphics_fill_rect(graphics, x, y, width, height, color), TAG, "button fill failed");
+    return graphics_draw_text(graphics, label_x, y + 2, label, 0xffff, 1);
 }
 
 static esp_err_t handle_input(const button_event_t *events, size_t event_count, void *ctx)
@@ -68,10 +72,10 @@ static esp_err_t render_game(uint32_t frame, uint32_t dt_ms, void *ctx)
         return ESP_OK;
     }
 
-    ESP_RETURN_ON_ERROR(draw_button_feedback(app->display, BUTTON_ID_LEFT, app->button_pressed[BUTTON_ID_LEFT]),
+    ESP_RETURN_ON_ERROR(draw_button_feedback(&app->graphics, BUTTON_ID_LEFT, app->button_pressed[BUTTON_ID_LEFT]),
                         TAG,
                         "left button render failed");
-    ESP_RETURN_ON_ERROR(draw_button_feedback(app->display, BUTTON_ID_RIGHT, app->button_pressed[BUTTON_ID_RIGHT]),
+    ESP_RETURN_ON_ERROR(draw_button_feedback(&app->graphics, BUTTON_ID_RIGHT, app->button_pressed[BUTTON_ID_RIGHT]),
                         TAG,
                         "right button render failed");
     app->render_dirty = false;
@@ -107,7 +111,7 @@ void app_main(void)
     ESP_ERROR_CHECK(display_smoke_test_run(display));
     ESP_ERROR_CHECK(button_input_init(&buttons, 30));
 
-    app.display = display;
+    ESP_ERROR_CHECK(graphics_init(&app.graphics, display));
     app.button_pressed[BUTTON_ID_LEFT] = button_input_is_pressed(&buttons, BUTTON_ID_LEFT);
     app.button_pressed[BUTTON_ID_RIGHT] = button_input_is_pressed(&buttons, BUTTON_ID_RIGHT);
     app.render_dirty = true;

@@ -46,9 +46,11 @@ Create a fixed-rate loop that separates input sampling, game update, and renderi
 
 Completed with a `game_loop` module that runs at a configured target FPS, samples button input, calls separate input/update/render callbacks, and logs frame-window timing stats. Verified with `idf.py build`, flashed to the board, and captured serial logs showing the fixed-rate loop running at 30 FPS across multiple stats windows.
 
-## 8. Drawing API
+## 8. Drawing API - Done
 
 Wrap the display driver with a small drawing layer for common game operations: clear screen, fill rectangle, outline rectangle, draw bitmap region, and simple text/debug rendering. Keep this API independent from any single game so later games can share it.
+
+Completed with a `graphics` module that wraps clear, filled rectangles, outlined rectangles, RGB565 bitmap regions, and scaled 5x7 text drawing. Integrated it into the render callback for on-screen button indicators. Verified with `idf.py build`, flashed to the board, and captured serial logs showing stable 30 FPS timing with the graphics-backed render path active.
 
 ## 9. First Demo Game
 
