@@ -113,8 +113,8 @@ The board is currently running the native ESP-IDF project in this repository:
 - ST7789 RAM offset in firmware: `x=52`, `y=40`
 - Display SPI pins: MOSI `GPIO19`, SCLK `GPIO18`, CS `GPIO5`, DC `GPIO16`, RST `GPIO23`, BL `GPIO4`
 - Display SPI clock: `20 MHz`
-- Current verified behavior: boots, initializes ST7789, runs red/green/blue/white/black fill phases, leaves a final diagnostic pattern on screen, configures debounced button polling, and enters a 30 FPS fixed-rate game loop with timing stats over serial.
-- Button test status: GPIO configuration and idle polling are verified; physical press/release mapping still needs a manual press test at the device.
+- Current verified behavior: boots, initializes ST7789, runs red/green/blue/white/black fill phases, starts a two-button catch game, configures debounced button polling, and enters a 30 FPS fixed-rate game loop with timing stats over serial.
+- Button test status: GPIO configuration, debouncing, press/release serial events, and game-loop event delivery are verified. Stable physical left/right orientation should still be checked visually at the device.
 
 ## Capacity And Rendering Budget
 

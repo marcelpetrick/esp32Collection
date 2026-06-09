@@ -52,9 +52,11 @@ Wrap the display driver with a small drawing layer for common game operations: c
 
 Completed with a `graphics` module that wraps clear, filled rectangles, outlined rectangles, RGB565 bitmap regions, and scaled 5x7 text drawing. Integrated it into the render callback for on-screen button indicators. Verified with `idf.py build`, flashed to the board, and captured serial logs showing stable 30 FPS timing with the graphics-backed render path active.
 
-## 9. First Demo Game
+## 9. First Demo Game - Done
 
 Implement a tiny playable demo using only the two buttons and the drawing API. The game should prove animation, input, screen clearing, collision or scoring logic, and stable frame timing without needing Wi-Fi or persistent storage.
+
+Completed with a two-button catch game. The left and right buttons move a paddle, a falling item advances every frame, collision increments score, and misses reset score. Rendering uses the drawing API with dirty rectangle updates and scaled text for the score. Verified with `idf.py build`, flashed to the board, and captured serial logs showing button press/release events and stable 30 FPS timing across multiple stats windows.
 
 ## 10. Flash And Monitor Workflow
 

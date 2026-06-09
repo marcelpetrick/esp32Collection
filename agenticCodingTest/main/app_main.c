@@ -1,5 +1,6 @@
 #include "board_config.h"
 #include "button_input.h"
+#include "demo_game.h"
 #include "display_smoke_test.h"
 #include "game_loop.h"
 #include "graphics.h"
@@ -18,24 +19,8 @@ static const char *TAG = "tdisplay_games";
 
 typedef struct {
     graphics_t graphics;
-    bool button_pressed[BUTTON_ID_COUNT];
-    bool render_dirty;
+    demo_game_t game;
 } app_context_t;
-
-static esp_err_t draw_button_feedback(graphics_t *graphics, button_id_t id, bool pressed)
-{
-    const board_config_t *board = board_config_get();
-    const uint16_t width = 28;
-    const uint16_t height = 12;
-    const uint16_t x = id == BUTTON_ID_LEFT ? 8 : board->display_width - width - 8;
-    const uint16_t y = board->display_height - height - 8;
-    const uint16_t color = pressed ? 0x07e0 : 0x2104;
-    const uint16_t label_x = x + 9;
-    const char *label = id == BUTTON_ID_LEFT ? "L" : "R";
-
-    ESP_RETURN_ON_ERROR(graphics_fill_rect(graphics, x, y, width, height, color), TAG, "button fill failed");
-    return graphics_draw_text(graphics, label_x, y + 2, label, 0xffff, 1);
-}
 
 static esp_err_t handle_input(const button_event_t *events, size_t event_count, void *ctx)
 {
@@ -43,23 +28,19 @@ static esp_err_t handle_input(const button_event_t *events, size_t event_count, 
 
     for (size_t i = 0; i < event_count; ++i) {
         const bool pressed = events[i].type == BUTTON_EVENT_PRESSED;
-        app->button_pressed[events[i].id] = pressed;
-        app->render_dirty = true;
         ESP_LOGI(TAG, "button %s %s at %llums",
                  button_input_name(events[i].id),
                  pressed ? "pressed" : "released",
                  (unsigned long long)events[i].timestamp_ms);
     }
 
-    return ESP_OK;
+    return demo_game_handle_input(&app->game, events, event_count);
 }
 
 static esp_err_t update_game(uint32_t frame, uint32_t dt_ms, void *ctx)
 {
-    (void)frame;
-    (void)dt_ms;
-    (void)ctx;
-    return ESP_OK;
+    app_context_t *app = (app_context_t *)ctx;
+    return demo_game_update(&app->game, frame, dt_ms);
 }
 
 static esp_err_t render_game(uint32_t frame, uint32_t dt_ms, void *ctx)
@@ -68,18 +49,7 @@ static esp_err_t render_game(uint32_t frame, uint32_t dt_ms, void *ctx)
     (void)dt_ms;
     app_context_t *app = (app_context_t *)ctx;
 
-    if (!app->render_dirty) {
-        return ESP_OK;
-    }
-
-    ESP_RETURN_ON_ERROR(draw_button_feedback(&app->graphics, BUTTON_ID_LEFT, app->button_pressed[BUTTON_ID_LEFT]),
-                        TAG,
-                        "left button render failed");
-    ESP_RETURN_ON_ERROR(draw_button_feedback(&app->graphics, BUTTON_ID_RIGHT, app->button_pressed[BUTTON_ID_RIGHT]),
-                        TAG,
-                        "right button render failed");
-    app->render_dirty = false;
-    return ESP_OK;
+    return demo_game_render(&app->game);
 }
 
 void app_main(void)
@@ -112,9 +82,10 @@ void app_main(void)
     ESP_ERROR_CHECK(button_input_init(&buttons, 30));
 
     ESP_ERROR_CHECK(graphics_init(&app.graphics, display));
-    app.button_pressed[BUTTON_ID_LEFT] = button_input_is_pressed(&buttons, BUTTON_ID_LEFT);
-    app.button_pressed[BUTTON_ID_RIGHT] = button_input_is_pressed(&buttons, BUTTON_ID_RIGHT);
-    app.render_dirty = true;
+    ESP_ERROR_CHECK(demo_game_init(&app.game,
+                                   &app.graphics,
+                                   button_input_is_pressed(&buttons, BUTTON_ID_LEFT),
+                                   button_input_is_pressed(&buttons, BUTTON_ID_RIGHT)));
 
     const game_loop_config_t loop_config = {
         .target_fps = 30,

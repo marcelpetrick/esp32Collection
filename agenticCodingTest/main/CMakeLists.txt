@@ -1,6 +1,7 @@
 idf_component_register(SRCS "app_main.c"
                             "board_config.c"
                             "button_input.c"
+                            "demo_game.c"
                             "display_smoke_test.c"
                             "game_loop.c"
                             "graphics.c"
