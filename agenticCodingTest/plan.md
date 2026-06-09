@@ -1,8 +1,14 @@
 # Implementation Plan
 
-## 1. Toolchain Baseline
+## 1. Toolchain Baseline - Done
 
 Install or locate a working ESP-IDF toolchain and confirm `idf.py`, the ESP32 target tools, Python environment, and serial permissions are usable. Record the exact setup commands that work on this machine so later build and flash steps are repeatable.
+
+Completed with ESP-IDF `v5.5.4` installed at `/home/mpetrick/.local/opt/esp-idf-v5.5.4`. Verified `idf.py --version`, `xtensa-esp32-elf-gcc`, Python dependencies, and `/dev/ttyACM0` access. Use:
+
+```sh
+source /home/mpetrick/.local/opt/esp-idf-v5.5.4/export.sh
+```
 
 ## 2. Project Skeleton
 
