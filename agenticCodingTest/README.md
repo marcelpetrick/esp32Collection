@@ -21,6 +21,26 @@ idf.py build
 idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B0A006803-if00 flash monitor
 ```
 
+## Monitor Only (no reflash)
+
+```sh
+idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B0A006803-if00 monitor
+```
+
+Press `Ctrl-]` to exit the monitor.
+
+## Clean Build
+
+```sh
+idf.py fullclean
+```
+
+## Erase Flash (restore blank device)
+
+```sh
+idf.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B0A006803-if00 erase-flash
+```
+
 ## Factory Backup
 
 A full 16 MB factory flash backup was written outside the repository:
