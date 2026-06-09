@@ -1,9 +1,11 @@
 #include "board_config.h"
 #include "button_input.h"
 #include "display_smoke_test.h"
+#include "game_loop.h"
 #include "st7789_display.h"
 
 #include "esp_chip_info.h"
+#include "esp_check.h"
 #include "esp_err.h"
 #include "esp_flash.h"
 #include "esp_log.h"
@@ -12,6 +14,12 @@
 #include "freertos/task.h"
 
 static const char *TAG = "tdisplay_games";
+
+typedef struct {
+    st7789_display_t *display;
+    bool button_pressed[BUTTON_ID_COUNT];
+    bool render_dirty;
+} app_context_t;
 
 static esp_err_t draw_button_feedback(st7789_display_t *display, button_id_t id, bool pressed)
 {
@@ -25,6 +33,51 @@ static esp_err_t draw_button_feedback(st7789_display_t *display, button_id_t id,
     return st7789_display_draw_rect(display, x, y, width, height, color);
 }
 
+static esp_err_t handle_input(const button_event_t *events, size_t event_count, void *ctx)
+{
+    app_context_t *app = (app_context_t *)ctx;
+
+    for (size_t i = 0; i < event_count; ++i) {
+        const bool pressed = events[i].type == BUTTON_EVENT_PRESSED;
+        app->button_pressed[events[i].id] = pressed;
+        app->render_dirty = true;
+        ESP_LOGI(TAG, "button %s %s at %llums",
+                 button_input_name(events[i].id),
+                 pressed ? "pressed" : "released",
+                 (unsigned long long)events[i].timestamp_ms);
+    }
+
+    return ESP_OK;
+}
+
+static esp_err_t update_game(uint32_t frame, uint32_t dt_ms, void *ctx)
+{
+    (void)frame;
+    (void)dt_ms;
+    (void)ctx;
+    return ESP_OK;
+}
+
+static esp_err_t render_game(uint32_t frame, uint32_t dt_ms, void *ctx)
+{
+    (void)frame;
+    (void)dt_ms;
+    app_context_t *app = (app_context_t *)ctx;
+
+    if (!app->render_dirty) {
+        return ESP_OK;
+    }
+
+    ESP_RETURN_ON_ERROR(draw_button_feedback(app->display, BUTTON_ID_LEFT, app->button_pressed[BUTTON_ID_LEFT]),
+                        TAG,
+                        "left button render failed");
+    ESP_RETURN_ON_ERROR(draw_button_feedback(app->display, BUTTON_ID_RIGHT, app->button_pressed[BUTTON_ID_RIGHT]),
+                        TAG,
+                        "right button render failed");
+    app->render_dirty = false;
+    return ESP_OK;
+}
+
 void app_main(void)
 {
     esp_chip_info_t chip_info;
@@ -33,6 +86,7 @@ void app_main(void)
     int chip_rev_minor = 0;
     st7789_display_t *display = NULL;
     button_input_t buttons = {0};
+    app_context_t app = {0};
 
     esp_chip_info(&chip_info);
     esp_flash_get_size(NULL, &flash_size);
@@ -52,30 +106,19 @@ void app_main(void)
     ESP_LOGI(TAG, "Display driver initialized and cleared");
     ESP_ERROR_CHECK(display_smoke_test_run(display));
     ESP_ERROR_CHECK(button_input_init(&buttons, 30));
-    ESP_ERROR_CHECK(draw_button_feedback(display, BUTTON_ID_LEFT, button_input_is_pressed(&buttons, BUTTON_ID_LEFT)));
-    ESP_ERROR_CHECK(draw_button_feedback(display, BUTTON_ID_RIGHT, button_input_is_pressed(&buttons, BUTTON_ID_RIGHT)));
 
-    uint32_t tick = 0;
-    TickType_t last_heartbeat = xTaskGetTickCount() - pdMS_TO_TICKS(5000);
-    while (true) {
-        button_event_t events[BUTTON_ID_COUNT];
-        size_t event_count = 0;
+    app.display = display;
+    app.button_pressed[BUTTON_ID_LEFT] = button_input_is_pressed(&buttons, BUTTON_ID_LEFT);
+    app.button_pressed[BUTTON_ID_RIGHT] = button_input_is_pressed(&buttons, BUTTON_ID_RIGHT);
+    app.render_dirty = true;
 
-        ESP_ERROR_CHECK(button_input_poll(&buttons, events, BUTTON_ID_COUNT, &event_count));
-        for (size_t i = 0; i < event_count; ++i) {
-            const bool pressed = events[i].type == BUTTON_EVENT_PRESSED;
-            ESP_LOGI(TAG, "button %s %s at %llums",
-                     button_input_name(events[i].id),
-                     pressed ? "pressed" : "released",
-                     (unsigned long long)events[i].timestamp_ms);
-            ESP_ERROR_CHECK(draw_button_feedback(display, events[i].id, pressed));
-        }
-
-        const TickType_t now = xTaskGetTickCount();
-        if (now - last_heartbeat >= pdMS_TO_TICKS(5000)) {
-            ESP_LOGI(TAG, "heartbeat %lu", (unsigned long)tick++);
-            last_heartbeat = now;
-        }
-        vTaskDelay(pdMS_TO_TICKS(20));
-    }
+    const game_loop_config_t loop_config = {
+        .target_fps = 30,
+        .stats_interval_ms = 5000,
+        .ctx = &app,
+        .on_input = handle_input,
+        .on_update = update_game,
+        .on_render = render_game,
+    };
+    ESP_ERROR_CHECK(game_loop_run(display, &buttons, &loop_config));
 }

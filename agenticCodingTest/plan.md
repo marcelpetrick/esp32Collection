@@ -40,9 +40,11 @@ Add GPIO input handling for the two onboard buttons with pull-up configuration, 
 
 Completed with a `button_input` module that configures left `GPIO0` and right `GPIO35`, applies 30 ms debounce, emits press/release events, and updates small on-screen button indicators. Verified with `idf.py build`, flashed to the board, and captured serial logs showing both GPIOs configured and the polling loop surviving multiple heartbeat intervals. Physical press mapping still needs a manual press test at the device.
 
-## 7. Game Loop Foundation
+## 7. Game Loop Foundation - Done
 
 Create a fixed-rate loop that separates input sampling, game update, and rendering. Use ESP-IDF timers or FreeRTOS timing primitives, keep frame timing visible in logs during development, and make the loop simple enough to reuse for multiple small games.
+
+Completed with a `game_loop` module that runs at a configured target FPS, samples button input, calls separate input/update/render callbacks, and logs frame-window timing stats. Verified with `idf.py build`, flashed to the board, and captured serial logs showing the fixed-rate loop running at 30 FPS across multiple stats windows.
 
 ## 8. Drawing API
 
