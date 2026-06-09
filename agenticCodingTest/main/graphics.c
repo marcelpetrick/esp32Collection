@@ -163,3 +163,69 @@ esp_err_t graphics_draw_text(graphics_t *graphics,
 
     return ESP_OK;
 }
+
+esp_err_t graphics_draw_sprite(graphics_t *graphics,
+                               int32_t x,
+                               int32_t y,
+                               uint16_t width,
+                               uint16_t height,
+                               const uint16_t *pixels,
+                               uint16_t transparent_key,
+                               uint16_t screen_width,
+                               uint16_t screen_height)
+{
+    ESP_RETURN_ON_FALSE(graphics != NULL && graphics->display != NULL, ESP_ERR_INVALID_ARG, "graphics", "not initialized");
+    ESP_RETURN_ON_FALSE(pixels != NULL, ESP_ERR_INVALID_ARG, "graphics", "pixels required");
+
+    for (uint16_t row = 0; row < height; row++) {
+        int32_t py = y + (int32_t)row;
+        if (py < 0 || py >= (int32_t)screen_height) {
+            continue;
+        }
+
+        uint16_t col = 0;
+        const uint16_t *row_pixels = &pixels[(uint32_t)row * width];
+
+        while (col < width) {
+            while (col < width && row_pixels[col] == transparent_key) {
+                col++;
+            }
+            if (col >= width) {
+                break;
+            }
+
+            uint16_t run_start = col;
+            while (col < width && row_pixels[col] != transparent_key) {
+                col++;
+            }
+            uint16_t run_len = col - run_start;
+
+            int32_t px = x + (int32_t)run_start;
+            int32_t clip_x = px;
+            int32_t clip_w = (int32_t)run_len;
+            int32_t pixel_offset = 0;
+
+            if (clip_x < 0) {
+                pixel_offset = -clip_x;
+                clip_w += clip_x;
+                clip_x = 0;
+            }
+            if (clip_x >= (int32_t)screen_width || clip_w <= 0) {
+                continue;
+            }
+            if (clip_x + clip_w > (int32_t)screen_width) {
+                clip_w = (int32_t)screen_width - clip_x;
+            }
+
+            ESP_RETURN_ON_ERROR(
+                st7789_display_push_pixels(graphics->display,
+                                           (uint16_t)clip_x, (uint16_t)py,
+                                           (uint16_t)clip_w, 1,
+                                           &row_pixels[run_start + (uint16_t)pixel_offset],
+                                           (size_t)clip_w),
+                "graphics", "sprite run push failed");
+        }
+    }
+
+    return ESP_OK;
+}

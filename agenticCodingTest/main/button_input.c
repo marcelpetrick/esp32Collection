@@ -100,10 +100,27 @@ esp_err_t button_input_poll(button_input_t *input,
         if (raw_pressed != state->stable_pressed &&
             timestamp - state->last_raw_change_ms >= input->debounce_ms) {
             state->stable_pressed = raw_pressed;
+            if (raw_pressed) {
+                state->press_start_ms = timestamp;
+                state->long_press_fired = false;
+            }
             if (*event_count < max_events) {
                 events[*event_count] = (button_event_t) {
                     .id = id,
                     .type = raw_pressed ? BUTTON_EVENT_PRESSED : BUTTON_EVENT_RELEASED,
+                    .timestamp_ms = timestamp,
+                };
+                ++(*event_count);
+            }
+        }
+
+        if (state->stable_pressed && !state->long_press_fired &&
+            timestamp - state->press_start_ms >= BUTTON_LONG_PRESS_MS) {
+            state->long_press_fired = true;
+            if (*event_count < max_events) {
+                events[*event_count] = (button_event_t) {
+                    .id = id,
+                    .type = BUTTON_EVENT_LONG_PRESSED,
                     .timestamp_ms = timestamp,
                 };
                 ++(*event_count);

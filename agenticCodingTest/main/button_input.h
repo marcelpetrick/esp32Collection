@@ -12,9 +12,12 @@ typedef enum {
     BUTTON_ID_COUNT,
 } button_id_t;
 
+#define BUTTON_LONG_PRESS_MS 400u
+
 typedef enum {
     BUTTON_EVENT_PRESSED = 0,
     BUTTON_EVENT_RELEASED,
+    BUTTON_EVENT_LONG_PRESSED,
 } button_event_type_t;
 
 typedef struct {
@@ -27,6 +30,8 @@ typedef struct {
     bool stable_pressed;
     bool last_raw_pressed;
     uint64_t last_raw_change_ms;
+    uint64_t press_start_ms;
+    bool long_press_fired;
 } button_state_t;
 
 typedef struct {

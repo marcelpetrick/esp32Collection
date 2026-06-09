@@ -2,9 +2,9 @@
 
 A discovery-and-collection game designed specifically for:
 
-* 120×240 color display
-* 2 physical buttons
-* Short and long presses
+* 135×240 ST7789 color display (TENSTAR T-Display ESP32 clone)
+* 2 physical buttons: left (GPIO0) and right (GPIO35)
+* Short and long presses (long = held ≥ 400 ms)
 * 8-year-old players
 * Simple implementation by an AI coding agent
 
@@ -18,14 +18,16 @@ The core loop is:
 
 ## Exploration
 
-| Input   | Action            |
-| ------- | ----------------- |
-| A short | Move left         |
-| B short | Move right        |
-| A long  | Open Monster Book |
-| B long  | Take Photo        |
+| Input         | Action                    |
+| ------------- | ------------------------- |
+| Left short    | Move left                 |
+| Right short   | Move right                |
+| Left long     | Open Monster Book         |
+| Right long    | Enter camera / take photo |
 
-Long presses are infrequent and intentional.
+"Left" = GPIO0 button, "Right" = GPIO35 button.
+Long press = held ≥ 400 ms (fires once mid-hold, not on release).
+Short press = walk (continuous while held, stops on release).
 
 ---
 
@@ -49,20 +51,24 @@ Cloud Kingdom
 
 Each biome is a single scrolling scene.
 
-Display layout:
+Display layout (135 wide × 240 tall, portrait):
 
 ```
-+------------------+
-|    Sky Area      |
++------------------+  y=0
+|    Sky / clouds  |
 |                  |
-|    Monster       |
+|    Monster       |  y≈145
 |                  |
 |                  |
-|                  |
-| Player           |
-+------------------+
-A=Left  B=Right
++~~~~~~~~~~~~~~~~~~+  y=170 grass line
+|    Ground        |  y=170-210
+| [Player]         |  y=192  (sprite 10×16 px)
++==================+  y=228
+|  L:BOOK  R:PHOTO |  y=228-240 HUD
++------------------+  y=240
 ```
+
+SPI display clock is 20 MHz (ESP-IDF rejected 40 MHz on this GPIO-matrix route).
 
 ---
 
@@ -150,22 +156,22 @@ This creates life with little code.
 
 # Photographing
 
-Player holds B.
+Player holds Right button (≥ 400 ms long press).
 
-Camera overlay appears.
+Camera overlay appears immediately on long-press event.
 
 ```
 +------------------+
-|      [ ]         |
-|                  |
-|   Fluffalo       |
-|                  |
+|  [  VIEWFINDER ] |
+|  |            |  |
+|  |  Fluffalo  |  |
+|  |            |  |
+|  +------------+  |
 +------------------+
 ```
 
-Release after hold duration.
-
-Photo scored.
+Right button release = photo taken and scored.
+Left button press while in camera mode = cancel and return to exploring.
 
 ---
 
@@ -212,7 +218,7 @@ Very rewarding.
 
 # Monster Book
 
-A long press on A opens collection book.
+A long press on the Left button opens collection book. Left/Right short press navigates entries. Left long press closes book.
 
 ```
 MONSTER BOOK
@@ -394,18 +400,20 @@ Children love discovering weird combinations.
 
 # Save Data
 
-Tiny save file.
+Stored in ESP-IDF NVS (non-volatile storage), namespace `"mpg"`.
 
-```json
-{
-  "stars": 530,
-  "photos_taken": 144,
-  "species_found": 37,
-  "best_photos": {}
-}
-```
+| NVS key  | Type | Meaning                         |
+| -------- | ---- | ------------------------------- |
+| `stars`  | u32  | total stars earned              |
+| `taken`  | u32  | total photos taken              |
+| `found`  | u32  | species discovered count        |
+| `best0`  | u32  | best photo score, species 0     |
+| `best1`  | u32  | best photo score, species 1     |
+| `best2`  | u32  | best photo score, species 2     |
+| `disc`   | u8   | bitmask of discovered species   |
 
-Suitable for microcontrollers.
+Loaded at boot, saved after each photo. Survives power cycles.
+NVS is at flash offset `0x9000`, 20 KB, already partitioned.
 
 ---
 

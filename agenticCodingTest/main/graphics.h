@@ -37,3 +37,13 @@ esp_err_t graphics_draw_text(graphics_t *graphics,
                              const char *text,
                              uint16_t color565,
                              uint16_t scale);
+
+esp_err_t graphics_draw_sprite(graphics_t *graphics,
+                               int32_t x,
+                               int32_t y,
+                               uint16_t width,
+                               uint16_t height,
+                               const uint16_t *pixels,
+                               uint16_t transparent_key,
+                               uint16_t screen_width,
+                               uint16_t screen_height);
