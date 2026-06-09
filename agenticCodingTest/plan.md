@@ -28,9 +28,11 @@ Implement a small ESP-IDF SPI driver for the ST7789 display. The first version s
 
 Completed with a native `st7789_display` module supporting panel reset/init, backlight on/off, full-screen fill, single pixels, filled rectangles, and rectangular RGB565 buffer pushes. Verified with `idf.py build`, flashed to the board, and captured serial logs showing successful ST7789 initialization, display clear, and heartbeat output. During bring-up the SPI clock was lowered from 40 MHz to 20 MHz because ESP-IDF rejects 40 MHz on this ESP32 GPIO-matrix route.
 
-## 5. Display Smoke Test Firmware
+## 5. Display Smoke Test Firmware - Done
 
 Build a smoke test that fills the screen with red, green, blue, black, and white, then draws a few rectangles and text-like debug patterns. Flash it to confirm the display pins, dimensions, color byte order, orientation, and backlight behavior.
+
+Completed with a startup smoke test that cycles red, green, blue, white, and black fills, then draws a final diagnostic pattern with borders, grid lines, color swatches, diagonal pixels, an RGB565 checkerboard buffer push, and block-letter markers. Verified with `idf.py build`, flashed to the board, and captured serial logs for every smoke-test phase through final heartbeat output.
 
 ## 6. Button Input Driver
 

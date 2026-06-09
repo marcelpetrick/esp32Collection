@@ -1,4 +1,5 @@
 #include "board_config.h"
+#include "display_smoke_test.h"
 #include "st7789_display.h"
 
 #include "esp_chip_info.h"
@@ -35,6 +36,7 @@ void app_main(void)
     ESP_ERROR_CHECK(st7789_display_init(&display));
     ESP_ERROR_CHECK(st7789_display_fill(display, 0x0000));
     ESP_LOGI(TAG, "Display driver initialized and cleared");
+    ESP_ERROR_CHECK(display_smoke_test_run(display));
 
     uint32_t tick = 0;
     while (true) {
