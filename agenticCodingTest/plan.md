@@ -81,19 +81,19 @@ Completed across all prior stages. Each milestone was committed individually wit
 Implement the Monster Photographer game specified in `documents/monster_photographer_game.md`.
 Designed for 8-year-old players: always positive feedback, simple controls, discovery rewards.
 
-### 13a. Long-press detection in button_input
+### 13a. Long-press detection in button_input - Done
 
 Extend `button_input` with a `BUTTON_EVENT_LONG_PRESSED` event that fires once after a button
 is held for 400 ms. Needed for A-long = Monster Book, B-long = enter camera. Add
 `press_start_ms` and `long_press_fired` fields to `button_state_t`.
 
-### 13b. Sprite drawing in graphics
+### 13b. Sprite drawing in graphics - Done
 
 Add `graphics_draw_sprite(g, x, y, w, h, pixels, transparent_key)` that renders an RGB565 pixel
 array with one transparent-key color skipped. Clips to screen bounds. Uses horizontal run batching
 to minimise SPI transactions.
 
-### 13c. Pixel-art sprites
+### 13c. Pixel-art sprites - Done
 
 Define cute sprites in `monster_sprites.h`:
 - **Player** (10×16): photographer kid with blue shirt and camera
@@ -101,42 +101,42 @@ Define cute sprites in `monster_sprites.h`:
 - **Twiglet** (8×18): tall thin green stick creature with leaf ears (rare)
 - **Moss Mouse** (12×10): chubby brown mouse with green moss patches (legendary)
 
-### 13d. World, player movement, camera scroll
+### 13d. World, player movement, camera scroll - Done
 
 Scrolling forest world 600 px wide. Player walks left/right (A/B held). Camera follows player.
 Static colored background bands: sky (top), monster zone, grass, ground, player zone, HUD strip.
 A short = walk left, B short = walk right. Short = held < 400 ms, long ≥ 400 ms.
 
-### 13e. Monster FSM
+### 13e. Monster FSM - Done
 
 Three forest monsters placed at different world X positions. Each has five states:
 idle / moving / sleeping / playing / eating. Timer-driven transitions every 1–5 s. Moving monsters
 wander ±50 px from spawn. State shown with a small indicator ("Z Z" above sleeping, "!" above playing).
 
-### 13f. Camera overlay and photo scoring
+### 13f. Camera overlay and photo scoring - Done
 
 B long press enters camera mode: white rectangle frame drawn over screen. B release scores photo:
 `quality = distance_score + center_score + rarity_bonus`. Score shown as "AMAZING! 87 pts" /
 "NICE! 45 pts" / "OK 22 pts". Always positive — no "you missed" message.
 
-### 13g. Discovery animation
+### 13g. Discovery animation - Done
 
 First photo of a new species triggers a cheerful animation: two white flashes, then
 "NEW FRIEND!" in large text with the monster name. Stars awarded: 10 for common, 25 for rare,
 50 for legendary.
 
-### 13h. Monster Book
+### 13h. Monster Book - Done
 
 A long press opens the collection book. Shows each species: checkmark and best score if found,
 "????" if not yet seen. A/B navigate entries. A long press closes book. Designed to make kids
 want to fill every slot.
 
-### 13i. NVS save data
+### 13i. NVS save data - Done
 
 Persist `{stars, photos_taken, species_found, best_photos[3], discovered[3]}` using ESP-IDF NVS
 under namespace `"mpg"`. Load on boot, save after each photo taken. Survives power cycles.
 
-### 13j. Final integration and smoke test
+### 13j. Final integration and smoke test - Done
 
 Wire monster_game into app_main replacing demo_game. Remove smoke test from the boot path.
 Add nvs_flash_init before display init. Build, flash, verify serial logs show NVS load, game loop
