@@ -9,6 +9,8 @@ static const board_config_t BOARD_CONFIG = {
     .display_driver = BOARD_DISPLAY_DRIVER,
     .display_width = BOARD_DISPLAY_WIDTH,
     .display_height = BOARD_DISPLAY_HEIGHT,
+    .display_x_offset = BOARD_DISPLAY_X_OFFSET,
+    .display_y_offset = BOARD_DISPLAY_Y_OFFSET,
     .spi_host = BOARD_TFT_SPI_HOST,
     .spi_clock_hz = BOARD_TFT_SPI_CLOCK_HZ,
     .tft_mosi = BOARD_TFT_PIN_MOSI,
@@ -40,10 +42,12 @@ bool board_button_is_active_level(int level)
 void board_config_log(void)
 {
     ESP_LOGI(TAG, "Board: %s", BOARD_CONFIG.name);
-    ESP_LOGI(TAG, "Display: %s %ux%u",
+    ESP_LOGI(TAG, "Display: %s %ux%u offset=%u,%u",
              BOARD_CONFIG.display_driver,
              BOARD_CONFIG.display_width,
-             BOARD_CONFIG.display_height);
+             BOARD_CONFIG.display_height,
+             BOARD_CONFIG.display_x_offset,
+             BOARD_CONFIG.display_y_offset);
     ESP_LOGI(TAG, "TFT SPI: host=%d clock=%luHz MOSI=%d SCLK=%d CS=%d DC=%d RST=%d BL=%d",
              BOARD_CONFIG.spi_host,
              (unsigned long)BOARD_CONFIG.spi_clock_hz,

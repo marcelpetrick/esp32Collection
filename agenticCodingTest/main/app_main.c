@@ -1,6 +1,8 @@
 #include "board_config.h"
+#include "st7789_display.h"
 
 #include "esp_chip_info.h"
+#include "esp_err.h"
 #include "esp_flash.h"
 #include "esp_log.h"
 #include "esp_system.h"
@@ -15,6 +17,7 @@ void app_main(void)
     uint32_t flash_size = 0;
     int chip_rev_major = 0;
     int chip_rev_minor = 0;
+    st7789_display_t *display = NULL;
 
     esp_chip_info(&chip_info);
     esp_flash_get_size(NULL, &flash_size);
@@ -29,7 +32,9 @@ void app_main(void)
              (chip_info.features & CHIP_FEATURE_BLE) ? "yes" : "no");
     ESP_LOGI(TAG, "Flash size: %lu bytes", (unsigned long)flash_size);
     board_config_log();
-    ESP_LOGI(TAG, "Skeleton firmware is alive; display and input drivers are not initialized yet");
+    ESP_ERROR_CHECK(st7789_display_init(&display));
+    ESP_ERROR_CHECK(st7789_display_fill(display, 0x0000));
+    ESP_LOGI(TAG, "Display driver initialized and cleared");
 
     uint32_t tick = 0;
     while (true) {

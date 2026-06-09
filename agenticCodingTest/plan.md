@@ -22,9 +22,11 @@ Define all board-specific constants in one place: display size, SPI pins, displa
 
 Completed with a `board_config` module that centralizes display, SPI, backlight, button, battery ADC, flash, and serial constants for the TENSTAR/T-Display ESP32 profile. Verified with `idf.py build`, flashed to the device, and captured serial logs showing the expected ST7789 135x240 display profile, GPIO mapping, 16 MB flash assumption, and 115200 baud setting.
 
-## 4. ST7789 Display Driver
+## 4. ST7789 Display Driver - Done
 
 Implement a small ESP-IDF SPI driver for the ST7789 display. The first version should support reset/init, orientation, backlight control, full-screen fill, drawing pixels, drawing rectangles, and pushing a rectangular pixel buffer.
+
+Completed with a native `st7789_display` module supporting panel reset/init, backlight on/off, full-screen fill, single pixels, filled rectangles, and rectangular RGB565 buffer pushes. Verified with `idf.py build`, flashed to the board, and captured serial logs showing successful ST7789 initialization, display clear, and heartbeat output. During bring-up the SPI clock was lowered from 40 MHz to 20 MHz because ESP-IDF rejects 40 MHz on this ESP32 GPIO-matrix route.
 
 ## 5. Display Smoke Test Firmware
 

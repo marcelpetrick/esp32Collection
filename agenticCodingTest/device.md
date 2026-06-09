@@ -40,7 +40,7 @@ Evidence:
 - JTAG disabled: no
 - PSRAM: not detected during probing; treat as disabled unless proven otherwise
 
-## Current Flash Layout
+## Factory Flash Layout Before Replacement
 
 Partition table:
 
@@ -59,9 +59,9 @@ Notes:
 - `app0` SHA-256 dump hash: `dbb326c6078012e1bf9bd3498e8be130ee1b0e61bf6e7b66640c3d0a25b82b81`
 - `app1` SHA-256 dump hash: `35805909a516a528e396b6ea22dab437b6f1c703afe92e92dddfa0243bfae738` (erased slot)
 
-## Current Firmware
+## Factory Firmware Before Replacement
 
-The installed application appears to be a T-Display factory/demo firmware built with the Arduino ESP32 core over ESP-IDF.
+The original installed application appeared to be a T-Display factory/demo firmware built with the Arduino ESP32 core over ESP-IDF. It has since been replaced by the native ESP-IDF development firmware in this repository.
 
 Observed boot output at `115200`:
 
@@ -101,6 +101,20 @@ Inferred firmware capabilities:
 
 No command-line serial console was found. Passive reads and simple `help`, `?`, `version`, `ver`, and `info` probes produced no application response.
 
+## Current Development Firmware
+
+The board is currently running the native ESP-IDF project in this repository:
+
+- Project name: `tdisplay_games`
+- ESP-IDF: `v5.5.4`
+- Partition table: custom 16 MB layout from `partitions.csv`
+- Display driver: native ST7789 SPI driver
+- Display size in firmware: `135 x 240`
+- ST7789 RAM offset in firmware: `x=52`, `y=40`
+- Display SPI pins: MOSI `GPIO19`, SCLK `GPIO18`, CS `GPIO5`, DC `GPIO16`, RST `GPIO23`, BL `GPIO4`
+- Display SPI clock: `20 MHz`
+- Current verified behavior: boots, initializes ST7789, clears the display to black, enables backlight, and emits heartbeat logs.
+
 ## NVS
 
 NVS was dumped from `0x9000` length `0x5000` to `/tmp/esp32-nvs.bin`.
@@ -136,6 +150,7 @@ Recommended starting configuration:
 - Upload port: `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B0A006803-if00`
 - Serial monitor: `115200`
 - Display driver expectation: ST7789, 135 x 240, SPI
+- Display SPI clock: start at `20 MHz`; ESP-IDF rejected `40 MHz` on the current GPIO-matrix route with a limit below `26.666 MHz`.
 
 If reusing the current partition style, preserve the offsets above. If the project needs the full flash, define a new 16 MB partition table rather than assuming the current 4 MB layout uses all available flash.
 

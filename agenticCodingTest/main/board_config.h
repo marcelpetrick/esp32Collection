@@ -10,9 +10,11 @@
 #define BOARD_DISPLAY_DRIVER "ST7789"
 #define BOARD_DISPLAY_WIDTH 135
 #define BOARD_DISPLAY_HEIGHT 240
+#define BOARD_DISPLAY_X_OFFSET 52
+#define BOARD_DISPLAY_Y_OFFSET 40
 
 #define BOARD_TFT_SPI_HOST SPI2_HOST
-#define BOARD_TFT_SPI_CLOCK_HZ (40 * 1000 * 1000)
+#define BOARD_TFT_SPI_CLOCK_HZ (20 * 1000 * 1000)
 #define BOARD_TFT_PIN_MOSI GPIO_NUM_19
 #define BOARD_TFT_PIN_SCLK GPIO_NUM_18
 #define BOARD_TFT_PIN_CS GPIO_NUM_5
@@ -36,6 +38,8 @@ typedef struct {
     const char *display_driver;
     uint16_t display_width;
     uint16_t display_height;
+    uint16_t display_x_offset;
+    uint16_t display_y_offset;
     spi_host_device_t spi_host;
     uint32_t spi_clock_hz;
     gpio_num_t tft_mosi;
