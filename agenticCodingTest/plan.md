@@ -34,9 +34,11 @@ Build a smoke test that fills the screen with red, green, blue, black, and white
 
 Completed with a startup smoke test that cycles red, green, blue, white, and black fills, then draws a final diagnostic pattern with borders, grid lines, color swatches, diagonal pixels, an RGB565 checkerboard buffer push, and block-letter markers. Verified with `idf.py build`, flashed to the board, and captured serial logs for every smoke-test phase through final heartbeat output.
 
-## 6. Button Input Driver
+## 6. Button Input Driver - Done
 
 Add GPIO input handling for the two onboard buttons with pull-up configuration, debounce, press/release events, and stable left/right naming. Log events over serial and display simple visual feedback so the physical button mapping can be verified.
+
+Completed with a `button_input` module that configures left `GPIO0` and right `GPIO35`, applies 30 ms debounce, emits press/release events, and updates small on-screen button indicators. Verified with `idf.py build`, flashed to the board, and captured serial logs showing both GPIOs configured and the polling loop surviving multiple heartbeat intervals. Physical press mapping still needs a manual press test at the device.
 
 ## 7. Game Loop Foundation
 

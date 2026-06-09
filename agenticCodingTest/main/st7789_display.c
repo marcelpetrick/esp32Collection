@@ -30,6 +30,7 @@
 struct st7789_display {
     const board_config_t *board;
     spi_device_handle_t spi;
+    uint16_t scratch[ST7789_MAX_CHUNK_PIXELS];
 };
 
 static const char *TAG = "st7789";
@@ -220,14 +221,13 @@ esp_err_t st7789_display_push_pixels(st7789_display_t *display,
 
     size_t remaining = pixel_count;
     const uint16_t *cursor = pixels;
-    uint16_t line[ST7789_MAX_CHUNK_PIXELS];
     while (remaining > 0) {
         const size_t chunk_pixels = remaining > ST7789_MAX_CHUNK_PIXELS ? ST7789_MAX_CHUNK_PIXELS : remaining;
         for (size_t i = 0; i < chunk_pixels; ++i) {
             const uint16_t color = cursor[i];
-            line[i] = (uint16_t)((color << 8) | (color >> 8));
+            display->scratch[i] = (uint16_t)((color << 8) | (color >> 8));
         }
-        ESP_RETURN_ON_ERROR(write_data(display, (const uint8_t *)line, chunk_pixels * sizeof(uint16_t)), TAG, "pixel push failed");
+        ESP_RETURN_ON_ERROR(write_data(display, (const uint8_t *)display->scratch, chunk_pixels * sizeof(uint16_t)), TAG, "pixel push failed");
         cursor += chunk_pixels;
         remaining -= chunk_pixels;
     }
@@ -245,11 +245,10 @@ esp_err_t st7789_display_draw_rect(st7789_display_t *display,
     ESP_RETURN_ON_FALSE(display != NULL, ESP_ERR_INVALID_ARG, TAG, "display is required");
     ESP_RETURN_ON_FALSE(rect_is_valid(display, x, y, width, height), ESP_ERR_INVALID_ARG, TAG, "invalid rectangle");
 
-    uint16_t line[ST7789_MAX_CHUNK_PIXELS];
     const size_t total_pixels = (size_t)width * height;
     const uint16_t color = (uint16_t)((color565 << 8) | (color565 >> 8));
     for (size_t i = 0; i < ST7789_MAX_CHUNK_PIXELS; ++i) {
-        line[i] = color;
+        display->scratch[i] = color;
     }
 
     ESP_RETURN_ON_ERROR(set_window(display, x, y, width, height), TAG, "set window failed");
@@ -257,7 +256,7 @@ esp_err_t st7789_display_draw_rect(st7789_display_t *display,
     size_t remaining = total_pixels;
     while (remaining > 0) {
         const size_t chunk_pixels = remaining > ST7789_MAX_CHUNK_PIXELS ? ST7789_MAX_CHUNK_PIXELS : remaining;
-        ESP_RETURN_ON_ERROR(write_data(display, (const uint8_t *)line, chunk_pixels * sizeof(uint16_t)), TAG, "rect draw failed");
+        ESP_RETURN_ON_ERROR(write_data(display, (const uint8_t *)display->scratch, chunk_pixels * sizeof(uint16_t)), TAG, "rect draw failed");
         remaining -= chunk_pixels;
     }
 

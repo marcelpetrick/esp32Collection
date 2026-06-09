@@ -23,6 +23,7 @@
 #define CHECKER_HEIGHT 32
 
 static const char *TAG = "display_smoke";
+static uint16_t checker_pixels[CHECKER_WIDTH * CHECKER_HEIGHT];
 
 static void pause_ms(uint32_t ms)
 {
@@ -66,17 +67,15 @@ static esp_err_t draw_grid(st7789_display_t *display, uint16_t width, uint16_t h
 
 static esp_err_t draw_checker(st7789_display_t *display, uint16_t x, uint16_t y)
 {
-    uint16_t pixels[CHECKER_WIDTH * CHECKER_HEIGHT];
-
     for (uint16_t row = 0; row < CHECKER_HEIGHT; ++row) {
         for (uint16_t col = 0; col < CHECKER_WIDTH; ++col) {
             const bool left = col < CHECKER_WIDTH / 2;
             const bool top = row < CHECKER_HEIGHT / 2;
-            pixels[(row * CHECKER_WIDTH) + col] = (left == top) ? COLOR_YELLOW : COLOR_BLUE;
+            checker_pixels[(row * CHECKER_WIDTH) + col] = (left == top) ? COLOR_YELLOW : COLOR_BLUE;
         }
     }
 
-    return st7789_display_push_pixels(display, x, y, CHECKER_WIDTH, CHECKER_HEIGHT, pixels, CHECKER_WIDTH * CHECKER_HEIGHT);
+    return st7789_display_push_pixels(display, x, y, CHECKER_WIDTH, CHECKER_HEIGHT, checker_pixels, CHECKER_WIDTH * CHECKER_HEIGHT);
 }
 
 static esp_err_t draw_diagonal_pixels(st7789_display_t *display, uint16_t width, uint16_t height)
