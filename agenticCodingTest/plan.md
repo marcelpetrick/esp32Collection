@@ -58,14 +58,37 @@ Implement a tiny playable demo using only the two buttons and the drawing API. T
 
 Completed with a two-button catch game. The left and right buttons move a paddle, a falling item advances every frame, collision increments score, and misses reset score. Rendering uses the drawing API with dirty rectangle updates and scaled text for the score. Verified with `idf.py build`, flashed to the board, and captured serial logs showing button press/release events and stable 30 FPS timing across multiple stats windows.
 
-## 10. Flash And Monitor Workflow
+## 10. Flash And Monitor Workflow - Done
 
 Add documented commands for build, flash, monitor, clean, and erase-flash. Prefer the stable `/dev/serial/by-id/...` port and make the commands copyable so future iterations can be flashed quickly.
 
-## 11. Hardware Verification Pass
+Completed with monitor-only, clean build, and erase-flash sections added to `README.md`, all using the stable `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B0A006803-if00` path. Includes `Ctrl-]` exit note.
+
+## 11. Hardware Verification Pass - Done
 
 After the first firmware flashes, verify display orientation, button mapping, reset behavior, serial logs, and whether the board behaves like the documented T-Display pinout. Update `device.md`, `vision.md`, or board constants if the hardware differs.
 
-## 12. Commit Milestones
+Completed with a full build and flash of the current firmware. Serial logs confirmed: ESP-IDF `v5.5.4`, chip `ESP32-D0WDQ6` revision `v1.1`, 16 MB flash, DIO 80 MHz, POWERON_RESET, game loop stable at 30 FPS (18 ms render window). No pin or constant corrections needed — hardware matches the documented T-Display profile. Physical button orientation should still be confirmed by hand at the device.
+
+## 12. Commit Milestones - Done
 
 Commit after each working stage: skeleton build, display smoke test, button input, game loop, drawing API, and demo game. Each commit should use a conventional commit message and include enough detail to explain what changed and what was verified.
+
+Completed across all prior stages. Each milestone was committed individually with conventional commit messages and verification details covering build output, flash result, and serial log observations.
+
+## 13. Monster Photographer Game
+
+Implement the Monster Photographer game specified in `documents/monster_photographer_game.md`.
+
+Key requirements:
+- Two-button controls (A/B short and long press)
+- Side-scrolling biomes (Forest → Cave → Beach → Volcano → Clouds)
+- Monster finite-state machine (idle, moving, sleeping, playing, eating)
+- Camera overlay and photo quality scoring (distance + center + rarity)
+- Monster Book collection with discovery animations
+- Rare variants (normal 90%, rare 9%, legendary 1%)
+- Time-of-day system affecting which monsters appear
+- Quest system with star rewards and biome unlocks
+- NVS save data (stars, photos taken, species found, best photos)
+- Cute pixel-art sprites for the player character and all monsters
+- Procedural monster generation for extended content
