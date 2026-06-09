@@ -116,6 +116,37 @@ The board is currently running the native ESP-IDF project in this repository:
 - Current verified behavior: boots, initializes ST7789, runs red/green/blue/white/black fill phases, leaves a final diagnostic pattern on screen, configures debounced button polling, and enters a 30 FPS fixed-rate game loop with timing stats over serial.
 - Button test status: GPIO configuration and idle polling are verified; physical press/release mapping still needs a manual press test at the device.
 
+## Capacity And Rendering Budget
+
+The board has `16MB` physical flash. The current repository partition table allocates it as:
+
+| Area | Size | Notes |
+| --- | ---: | --- |
+| `factory` app | `2MB` | Current app is flashed here during development. |
+| `ota_0` app | `4MB` | Reserved for OTA-capable firmware. |
+| `ota_1` app | `4MB` | Reserved for OTA-capable firmware. |
+| `storage` SPIFFS | `5MB` | Intended asset/data area. |
+| remaining flash | about `896KiB` | Currently unused by the partition table. |
+
+Current firmware binary size is about `208KB`, leaving about `1.8MB` free in the `2MB` factory app slot and about `3.8MB` free in a `4MB` OTA app slot.
+
+The display is `135 x 240`, or `32,400` pixels. A full-screen raw RGB565 frame is `64,800` bytes, about `63.3KiB`.
+
+Asset implications:
+
+- The current `5MB` SPIFFS partition can hold about `80` raw full-screen RGB565 backgrounds before filesystem overhead.
+- A practical raw full-screen background budget is closer to `70-75` images.
+- Compressed images can fit many more assets, but require adding a decoder path. Simple backgrounds may land around `5-30KB` each depending on content and format.
+- For game assets, prefer sprite sheets, tile maps, dirty rectangles, and preconverted RGB565 data when predictable rendering speed matters.
+
+Rendering implications:
+
+- The current firmware is verified at `30 FPS`.
+- Display SPI is set to `20MHz`; ESP-IDF rejected `40MHz` on the current ESP32 GPIO-matrix route.
+- The theoretical full-screen RGB565 transfer ceiling at `20MHz` is roughly `38 FPS` before command overhead.
+- Practical full-screen redraw target is `25-30 FPS`.
+- Dirty-rectangle or sprite-only rendering should hold `30 FPS` comfortably, and can be pushed higher later if needed.
+
 ## NVS
 
 NVS was dumped from `0x9000` length `0x5000` to `/tmp/esp32-nvs.bin`.
