@@ -1,3 +1,5 @@
+#include "board_config.h"
+
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_log.h"
@@ -26,6 +28,7 @@ void app_main(void)
              (chip_info.features & CHIP_FEATURE_BT) ? "yes" : "no",
              (chip_info.features & CHIP_FEATURE_BLE) ? "yes" : "no");
     ESP_LOGI(TAG, "Flash size: %lu bytes", (unsigned long)flash_size);
+    board_config_log();
     ESP_LOGI(TAG, "Skeleton firmware is alive; display and input drivers are not initialized yet");
 
     uint32_t tick = 0;

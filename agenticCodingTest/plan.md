@@ -16,9 +16,11 @@ Create the native ESP-IDF project structure with top-level CMake files, `main/`,
 
 Completed with a native ESP-IDF project, 16 MB partition table, startup-only `app_main.c`, and local build ignore rules. Verified with `idf.py build`, flashed to the board, and captured serial logs showing `tdisplay_games`, ESP-IDF `v5.5.4`, 16 MB flash, two cores, revision `v1.1`, and heartbeat output.
 
-## 3. Board Configuration
+## 3. Board Configuration - Done
 
 Define all board-specific constants in one place: display size, SPI pins, display control pins, backlight pin, button pins, serial baud rate, and flash assumptions. Start from the known TTGO/LILYGO T-Display pinout, then verify against hardware behavior during the first flash.
+
+Completed with a `board_config` module that centralizes display, SPI, backlight, button, battery ADC, flash, and serial constants for the TENSTAR/T-Display ESP32 profile. Verified with `idf.py build`, flashed to the device, and captured serial logs showing the expected ST7789 135x240 display profile, GPIO mapping, 16 MB flash assumption, and 115200 baud setting.
 
 ## 4. ST7789 Display Driver
 
