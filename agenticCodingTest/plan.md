@@ -10,9 +10,11 @@ Completed with ESP-IDF `v5.5.4` installed at `/home/mpetrick/.local/opt/esp-idf-
 source /home/mpetrick/.local/opt/esp-idf-v5.5.4/export.sh
 ```
 
-## 2. Project Skeleton
+## 2. Project Skeleton - Done
 
 Create the native ESP-IDF project structure with top-level CMake files, `main/`, `sdkconfig.defaults`, and a 16 MB-aware partition table. Keep the first skeleton minimal: it should compile for `esp32`, boot, and log a clear startup message before any display or game code is added.
+
+Completed with a native ESP-IDF project, 16 MB partition table, startup-only `app_main.c`, and local build ignore rules. Verified with `idf.py build`, flashed to the board, and captured serial logs showing `tdisplay_games`, ESP-IDF `v5.5.4`, 16 MB flash, two cores, revision `v1.1`, and heartbeat output.
 
 ## 3. Board Configuration
 
