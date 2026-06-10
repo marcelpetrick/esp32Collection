@@ -93,6 +93,7 @@ static const char *TAG = "shooter_game";
 #define C_GRAY      0x8410u
 #define C_TITLE_BG  0x0820u
 #define C_PROJ_TRAIL 0x035Fu
+#define C_DARK_GRAY  0x4208u
 
 // 8-direction vectors (pre-computed, no math.h needed)
 static const float DIR_X[8] = { 1.0f, 0.71f, 0.0f,-0.71f,-1.0f,-0.71f, 0.0f, 0.71f};
@@ -249,10 +250,12 @@ static uint32_t rng_next(uint32_t *s)
     return *s;
 }
 
+/* Returns a value in [lo, hi] INCLUSIVE. hi must be > lo and < INT32_MAX. */
 static int32_t rng_range(uint32_t *s, int32_t lo, int32_t hi)
 {
     if (hi <= lo) return lo;
-    return lo + (int32_t)(rng_next(s) % (uint32_t)(hi - lo + 1));
+    uint32_t range = (uint32_t)(hi - lo) + 1u;  // widened to avoid signed overflow
+    return lo + (int32_t)(rng_next(s) % range);
 }
 
 // ---------------------------------------------------------------
@@ -849,7 +852,7 @@ static void draw_hud(shooter_game_t *g)
         if (i < g->lives) {
             sfb_sprite(hx, 3, HEART_SPR_W, HEART_SPR_H, HEART_SPR, 1);
         } else {
-            sfb_outline(hx, 3, HEART_SPR_W, HEART_SPR_H, 0x4208u);
+            sfb_outline(hx, 3, HEART_SPR_W, HEART_SPR_H, C_DARK_GRAY);
         }
     }
 
