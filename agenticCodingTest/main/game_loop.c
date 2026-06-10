@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 
+#include "button_input.h"
 #include "esp_check.h"
 #include "esp_log.h"
 #include "esp_rom_sys.h"
@@ -36,9 +37,8 @@ static void wait_until_us(uint64_t deadline_us)
     }
 }
 
-esp_err_t game_loop_run(st7789_display_t *display, button_input_t *buttons, const game_loop_config_t *config)
+esp_err_t game_loop_run(button_input_t *buttons, const game_loop_config_t *config)
 {
-    ESP_RETURN_ON_FALSE(display != NULL, ESP_ERR_INVALID_ARG, TAG, "display is required");
     ESP_RETURN_ON_FALSE(buttons != NULL, ESP_ERR_INVALID_ARG, TAG, "buttons are required");
     ESP_RETURN_ON_FALSE(config != NULL, ESP_ERR_INVALID_ARG, TAG, "config is required");
 

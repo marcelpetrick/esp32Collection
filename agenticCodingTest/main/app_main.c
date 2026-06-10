@@ -85,5 +85,5 @@ void app_main(void)
         .on_update         = update_game,
         .on_render         = render_game,
     };
-    ESP_ERROR_CHECK(game_loop_run(display, &buttons, &loop_config));
+    ESP_ERROR_CHECK(game_loop_run(&buttons, &loop_config));
 }
