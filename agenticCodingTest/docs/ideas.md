@@ -41,3 +41,44 @@ ability resets the moment the player lands.
 
 **Effort:** Small — ~15 lines of logic in `shooter_game_update`, one new field in the
 struct.
+
+---
+
+## #2 — Local build / test / flash pipeline
+
+### Current state
+
+| Step | Tool | Status |
+|------|------|--------|
+| Build | `build_flash.sh build` | Works. Calls `idf.py build` via ESP-IDF 5.5.4. |
+| Flash | `build_flash.sh flash` / `deploy` | Works. 460800 baud via esptool. |
+| Monitor | `build_flash.sh monitor` | Works. 115200 baud serial. |
+| Unit tests | — | **Missing entirely.** No host-side tests, no Unity test component. |
+| On-device smoke test | `display_smoke_test.c` | **Dead code.** File exists but is not registered in `main/CMakeLists.txt` and is never called. |
+| End-of-run summary | — | **Missing.** `build_flash.sh` prints no final summary line — no binary size, no timing, no PASS/FAIL. |
+
+### What a complete pipeline would look like
+
+1. **`build_flash.sh` summary line** — after every `build` or `deploy` run, print one
+   line: binary size, partition free %, and elapsed wall-clock seconds.  
+   Example: `✓ build complete — 246 KB / 2048 KB (88% free) in 4.2 s`
+
+2. **Wire the smoke test** — add `display_smoke_test.c` to `CMakeLists.txt`, add an
+   opt-in call in `app_main` gated on a compile flag (`CONFIG_RUN_SMOKE_TEST`), so a
+   normal flash runs the game but `idf.py -DCONFIG_RUN_SMOKE_TEST=y build flash` runs
+   the colour-fill / pattern test first and logs PASS/FAIL.
+
+3. **Host-side unit tests for pure logic** — game logic functions (`rng_range`,
+   `aabb`, difficulty scaling, spawn spacing) have no hardware dependency and can be
+   tested on the host with a minimal Unity harness under `test/`. Run with
+   `idf.py -C test build` (ESP-IDF native host-target support).
+
+4. **One-command CI script** — a `ci.sh` (or Makefile target) that runs:
+   build → size check → host unit tests → (optionally) flash + smoke test.
+   Exits non-zero on any failure so it can gate commits or be run pre-push.
+
+**Effort:**  
+- Summary line: trivial (5 lines of bash).  
+- Wire smoke test: small (CMakeLists + Kconfig entry + one `#ifdef` in app_main).  
+- Host unit tests: medium (Unity component, ~3–5 test files for the pure-logic layer).  
+- CI script: small once the above exist.
