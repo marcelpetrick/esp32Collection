@@ -6,6 +6,7 @@
 
 #include "esp_check.h"
 #include "font_5x7.h"
+#include "st7789_display.h"
 
 static const uint8_t *glyph_for_char(char ch)
 {
@@ -26,7 +27,9 @@ esp_err_t graphics_init(graphics_t *graphics, st7789_display_t *display)
     ESP_RETURN_ON_FALSE(graphics != NULL, ESP_ERR_INVALID_ARG, "graphics", "graphics is required");
     ESP_RETURN_ON_FALSE(display != NULL, ESP_ERR_INVALID_ARG, "graphics", "display is required");
 
-    graphics->display = display;
+    graphics->display       = display;
+    graphics->screen_width  = st7789_display_width(display);
+    graphics->screen_height = st7789_display_height(display);
     return ESP_OK;
 }
 
@@ -125,12 +128,12 @@ esp_err_t graphics_draw_sprite(graphics_t *graphics,
                                uint16_t width,
                                uint16_t height,
                                const uint16_t *pixels,
-                               uint16_t transparent_key,
-                               uint16_t screen_width,
-                               uint16_t screen_height)
+                               uint16_t transparent_key)
 {
     ESP_RETURN_ON_FALSE(graphics != NULL && graphics->display != NULL, ESP_ERR_INVALID_ARG, "graphics", "not initialized");
     ESP_RETURN_ON_FALSE(pixels != NULL, ESP_ERR_INVALID_ARG, "graphics", "pixels required");
+    const uint16_t screen_width  = graphics->screen_width;
+    const uint16_t screen_height = graphics->screen_height;
 
     for (uint16_t row = 0; row < height; row++) {
         int32_t py = y + (int32_t)row;
@@ -192,16 +195,16 @@ esp_err_t graphics_draw_sprite_scaled(graphics_t *graphics,
                                       uint16_t height,
                                       const uint16_t *pixels,
                                       uint16_t transparent_key,
-                                      uint16_t screen_width,
-                                      uint16_t screen_height,
                                       uint8_t scale)
 {
     ESP_RETURN_ON_FALSE(graphics != NULL && graphics->display != NULL, ESP_ERR_INVALID_ARG, "graphics", "not initialized");
     ESP_RETURN_ON_FALSE(pixels != NULL, ESP_ERR_INVALID_ARG, "graphics", "pixels required");
     ESP_RETURN_ON_FALSE(scale > 0, ESP_ERR_INVALID_ARG, "graphics", "scale must be positive");
+    const uint16_t screen_width  = graphics->screen_width;
+    const uint16_t screen_height = graphics->screen_height;
 
     if (scale == 1) {
-        return graphics_draw_sprite(graphics, x, y, width, height, pixels, transparent_key, screen_width, screen_height);
+        return graphics_draw_sprite(graphics, x, y, width, height, pixels, transparent_key);
     }
 
     for (uint16_t row = 0; row < height; row++) {

@@ -273,3 +273,13 @@ esp_err_t st7789_display_draw_pixel(st7789_display_t *display, uint16_t x, uint1
 {
     return st7789_display_draw_rect(display, x, y, 1, 1, color565);
 }
+
+uint16_t st7789_display_width(const st7789_display_t *display)
+{
+    return display ? display->board->display_width : 0;
+}
+
+uint16_t st7789_display_height(const st7789_display_t *display)
+{
+    return display ? display->board->display_height : 0;
+}

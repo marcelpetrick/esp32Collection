@@ -11,6 +11,8 @@ typedef struct st7789_display st7789_display_t;
 esp_err_t st7789_display_init(st7789_display_t **display_out);
 void st7789_display_destroy(st7789_display_t *display);
 esp_err_t st7789_display_set_backlight(st7789_display_t *display, bool enabled);
+uint16_t st7789_display_width(const st7789_display_t *display);
+uint16_t st7789_display_height(const st7789_display_t *display);
 esp_err_t st7789_display_fill(st7789_display_t *display, uint16_t color565);
 /* High fixed overhead (3 SPI setup transactions per call); use push_pixels for multi-pixel writes. */
 esp_err_t st7789_display_draw_pixel(st7789_display_t *display, uint16_t x, uint16_t y, uint16_t color565);
