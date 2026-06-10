@@ -99,6 +99,125 @@ static const float DIR_X[8] = { 1.0f, 0.71f, 0.0f,-0.71f,-1.0f,-0.71f, 0.0f, 0.7
 static const float DIR_Y[8] = { 0.0f, 0.71f, 1.0f, 0.71f, 0.0f,-0.71f,-1.0f,-0.71f};
 
 // ---------------------------------------------------------------
+// Software framebuffer — render to RAM, push once per frame to
+// eliminate tearing caused by scattered GRAM writes mid-scan
+// ---------------------------------------------------------------
+static uint16_t s_fb[DISP_W * DISP_H];
+
+static const uint8_t SFB_DIGIT_FONT[10][5] = {
+    {0x3e, 0x51, 0x49, 0x45, 0x3e},
+    {0x00, 0x42, 0x7f, 0x40, 0x00},
+    {0x42, 0x61, 0x51, 0x49, 0x46},
+    {0x21, 0x41, 0x45, 0x4b, 0x31},
+    {0x18, 0x14, 0x12, 0x7f, 0x10},
+    {0x27, 0x45, 0x45, 0x45, 0x39},
+    {0x3c, 0x4a, 0x49, 0x49, 0x30},
+    {0x01, 0x71, 0x09, 0x05, 0x03},
+    {0x36, 0x49, 0x49, 0x49, 0x36},
+    {0x06, 0x49, 0x49, 0x29, 0x1e},
+};
+
+static const uint8_t SFB_LETTER_FONT[26][5] = {
+    {0x7e, 0x11, 0x11, 0x11, 0x7e},
+    {0x7f, 0x49, 0x49, 0x49, 0x36},
+    {0x3e, 0x41, 0x41, 0x41, 0x22},
+    {0x7f, 0x41, 0x41, 0x22, 0x1c},
+    {0x7f, 0x49, 0x49, 0x49, 0x41},
+    {0x7f, 0x09, 0x09, 0x09, 0x01},
+    {0x3e, 0x41, 0x49, 0x49, 0x7a},
+    {0x7f, 0x08, 0x08, 0x08, 0x7f},
+    {0x00, 0x41, 0x7f, 0x41, 0x00},
+    {0x20, 0x40, 0x41, 0x3f, 0x01},
+    {0x7f, 0x08, 0x14, 0x22, 0x41},
+    {0x7f, 0x40, 0x40, 0x40, 0x40},
+    {0x7f, 0x02, 0x0c, 0x02, 0x7f},
+    {0x7f, 0x04, 0x08, 0x10, 0x7f},
+    {0x3e, 0x41, 0x41, 0x41, 0x3e},
+    {0x7f, 0x09, 0x09, 0x09, 0x06},
+    {0x3e, 0x41, 0x51, 0x21, 0x5e},
+    {0x7f, 0x09, 0x19, 0x29, 0x46},
+    {0x46, 0x49, 0x49, 0x49, 0x31},
+    {0x01, 0x01, 0x7f, 0x01, 0x01},
+    {0x3f, 0x40, 0x40, 0x40, 0x3f},
+    {0x1f, 0x20, 0x40, 0x20, 0x1f},
+    {0x3f, 0x40, 0x38, 0x40, 0x3f},
+    {0x63, 0x14, 0x08, 0x14, 0x63},
+    {0x07, 0x08, 0x70, 0x08, 0x07},
+    {0x61, 0x51, 0x49, 0x45, 0x43},
+};
+
+static void sfb_fill(int x, int y, int w, int h, uint16_t c)
+{
+    int x1 = x + w, y1 = y + h;
+    if (x < 0) x = 0;
+    if (y < 0) y = 0;
+    if (x1 > DISP_W) x1 = DISP_W;
+    if (y1 > DISP_H) y1 = DISP_H;
+    if (x1 <= x || y1 <= y) return;
+    int n = x1 - x;
+    for (int py = y; py < y1; py++) {
+        uint16_t *row = s_fb + py * DISP_W + x;
+        for (int i = 0; i < n; i++) row[i] = c;
+    }
+}
+
+static void sfb_sprite(int x, int y, int sw, int sh,
+                        const uint16_t *pix, uint8_t scale)
+{
+    for (int row = 0; row < sh; row++) {
+        const uint16_t *rp = pix + row * sw;
+        for (int s = 0; s < scale; s++) {
+            int py = y + row * scale + s;
+            if (py < 0 || py >= DISP_H) continue;
+            uint16_t *dst = s_fb + py * DISP_W;
+            for (int col = 0; col < sw; col++) {
+                uint16_t c = rp[col];
+                if (c == SHOOT_SPR_KEY) continue;
+                for (int ss = 0; ss < scale; ss++) {
+                    int px = x + col * scale + ss;
+                    if ((unsigned)px < (unsigned)DISP_W) dst[px] = c;
+                }
+            }
+        }
+    }
+}
+
+static void sfb_outline(int x, int y, int w, int h, uint16_t c)
+{
+    sfb_fill(x, y, w, 1, c);
+    if (h > 1) sfb_fill(x, y + h - 1, w, 1, c);
+    if (h > 2) {
+        sfb_fill(x, y + 1, 1, h - 2, c);
+        if (w > 1) sfb_fill(x + w - 1, y + 1, 1, h - 2, c);
+    }
+}
+
+static void sfb_text(int x, int y, const char *text, uint16_t c, int scale)
+{
+    int cx = x;
+    for (const char *p = text; *p; p++) {
+        const uint8_t *g = NULL;
+        char ch = *p;
+        if (ch >= '0' && ch <= '9') {
+            g = SFB_DIGIT_FONT[ch - '0'];
+        } else {
+            if (ch >= 'a' && ch <= 'z') ch = (char)(ch - 32);
+            if (ch >= 'A' && ch <= 'Z') g = SFB_LETTER_FONT[ch - 'A'];
+        }
+        if (g) {
+            for (int col = 0; col < 5; col++) {
+                for (int row = 0; row < 7; row++) {
+                    if (g[col] & (1u << row)) {
+                        sfb_fill(cx + col * scale, y + row * scale, scale, scale, c);
+                    }
+                }
+            }
+        }
+        cx += 6 * scale;
+    }
+}
+
+// ---------------------------------------------------------------
 // NVS
 // ---------------------------------------------------------------
 static void nvs_load_hi(int32_t *hi)
@@ -712,41 +831,31 @@ esp_err_t shooter_game_update(shooter_game_t *game, uint32_t frame, uint32_t dt_
 // ---------------------------------------------------------------
 // Render helpers
 // ---------------------------------------------------------------
-static void draw_background(shooter_game_t *g)
+static void draw_background(void)
 {
-    graphics_t *gr = g->graphics;
-    // Sky bands
-    graphics_fill_rect(gr, 0, HUD_H,          DISP_W, 60,                  C_SKY1);
-    graphics_fill_rect(gr, 0, HUD_H + 60,     DISP_W, 80,                  C_SKY2);
-    graphics_fill_rect(gr, 0, HUD_H + 140,    DISP_W, GROUND_Y - HUD_H - 140, C_SKY3);
-    // Ground
-    graphics_fill_rect(gr, 0, GROUND_Y,       DISP_W, DISP_H - GROUND_Y,  C_GROUND);
-    graphics_fill_rect(gr, 0, GROUND_Y,       DISP_W, 3,                   C_GROUNDTOP);
+    sfb_fill(0, HUD_H,       DISP_W, 60,                      C_SKY1);
+    sfb_fill(0, HUD_H + 60,  DISP_W, 80,                      C_SKY2);
+    sfb_fill(0, HUD_H + 140, DISP_W, GROUND_Y - HUD_H - 140,  C_SKY3);
+    sfb_fill(0, GROUND_Y,    DISP_W, DISP_H - GROUND_Y,        C_GROUND);
+    sfb_fill(0, GROUND_Y,    DISP_W, 3,                         C_GROUNDTOP);
 }
 
 static void draw_hud(shooter_game_t *g)
 {
-    graphics_t *gr = g->graphics;
-    graphics_fill_rect(gr, 0, 0, DISP_W, HUD_H, C_HUD_BG);
+    sfb_fill(0, 0, DISP_W, HUD_H, C_HUD_BG);
 
-    // Hearts
     for (int i = 0; i < 3; i++) {
+        int hx = 1 + i * (HEART_SPR_W + 2);
         if (i < g->lives) {
-            graphics_draw_sprite(gr, 1 + i * (HEART_SPR_W + 2), 3,
-                                 HEART_SPR_W, HEART_SPR_H,
-                                 HEART_SPR, SHOOT_SPR_KEY, DISP_W, DISP_H);
+            sfb_sprite(hx, 3, HEART_SPR_W, HEART_SPR_H, HEART_SPR, 1);
         } else {
-            graphics_draw_rect(gr,
-                               (uint16_t)(1 + i * (HEART_SPR_W + 2)), 3,
-                               HEART_SPR_W, HEART_SPR_H, 0x4208u);
+            sfb_outline(hx, 3, HEART_SPR_W, HEART_SPR_H, 0x4208u);
         }
     }
 
-    // Score right-aligned (5 digits, scale 1)
     char buf[8];
     snprintf(buf, sizeof(buf), "%05ld", (long)g->score);
-    uint16_t score_x = (uint16_t)(DISP_W - 5 * 6 - 1);
-    graphics_draw_text(gr, score_x, 3, buf, C_WHITE, 1);
+    sfb_text(DISP_W - 5 * 6 - 1, 3, buf, C_WHITE, 1);
 }
 
 static const uint16_t *coin_spr(int frame)
@@ -761,22 +870,16 @@ static const uint16_t *coin_spr(int frame)
 
 static void draw_gameplay(shooter_game_t *g)
 {
-    graphics_t *gr = g->graphics;
-
-    draw_background(g);
+    draw_background();
 
     // Obstacles
     for (int i = 0; i < SG_MAX_OBSTACLES; i++) {
         sg_obstacle_t *o = &g->obstacles[i];
         if (!o->active) continue;
         if (o->type == SG_OBS_ROCK) {
-            graphics_draw_sprite_scaled(gr, (int32_t)o->x, (int32_t)o->y,
-                                        ROCK_SPR_W, ROCK_SPR_H, ROCK_SPR,
-                                        SHOOT_SPR_KEY, DISP_W, DISP_H, (uint8_t)SPR_SCALE);
+            sfb_sprite((int)o->x, (int)o->y, ROCK_SPR_W,  ROCK_SPR_H,  ROCK_SPR,  SPR_SCALE);
         } else {
-            graphics_draw_sprite_scaled(gr, (int32_t)o->x, (int32_t)o->y,
-                                        CRATE_SPR_W, CRATE_SPR_H, CRATE_SPR,
-                                        SHOOT_SPR_KEY, DISP_W, DISP_H, (uint8_t)SPR_SCALE);
+            sfb_sprite((int)o->x, (int)o->y, CRATE_SPR_W, CRATE_SPR_H, CRATE_SPR, SPR_SCALE);
         }
     }
 
@@ -784,9 +887,7 @@ static void draw_gameplay(shooter_game_t *g)
     for (int i = 0; i < SG_MAX_COINS; i++) {
         sg_coin_t *c = &g->coins[i];
         if (!c->active) continue;
-        graphics_draw_sprite_scaled(gr, (int32_t)c->x, (int32_t)c->y,
-                                    COIN_SPR_W, COIN_SPR_H, coin_spr(c->anim_frame),
-                                    SHOOT_SPR_KEY, DISP_W, DISP_H, (uint8_t)SPR_SCALE);
+        sfb_sprite((int)c->x, (int)c->y, COIN_SPR_W, COIN_SPR_H, coin_spr(c->anim_frame), SPR_SCALE);
     }
 
     // Enemies
@@ -795,14 +896,10 @@ static void draw_gameplay(shooter_game_t *g)
         if (!e->active) continue;
         if (e->type == SG_ENEMY_GROUND_BOT) {
             const uint16_t *spr = (e->anim_frame == 0) ? EBOT_F0 : EBOT_F1;
-            graphics_draw_sprite_scaled(gr, (int32_t)e->x, (int32_t)e->y,
-                                        EBOT_SPR_W, EBOT_SPR_H, spr,
-                                        SHOOT_SPR_KEY, DISP_W, DISP_H, (uint8_t)SPR_SCALE);
+            sfb_sprite((int)e->x, (int)e->y, EBOT_SPR_W, EBOT_SPR_H, spr, SPR_SCALE);
         } else {
             const uint16_t *spr = (e->anim_frame == 0) ? DRONE_F0 : DRONE_F1;
-            graphics_draw_sprite_scaled(gr, (int32_t)e->x, (int32_t)e->y,
-                                        DRONE_SPR_W, DRONE_SPR_H, spr,
-                                        SHOOT_SPR_KEY, DISP_W, DISP_H, (uint8_t)SPR_SCALE);
+            sfb_sprite((int)e->x, (int)e->y, DRONE_SPR_W, DRONE_SPR_H, spr, SPR_SCALE);
         }
     }
 
@@ -812,7 +909,7 @@ static void draw_gameplay(shooter_game_t *g)
         if (!pt->active || pt->type == SG_PART_SCORE_TEXT) continue;
         int px = (int)pt->x, py = (int)pt->y;
         if (px < 0 || px >= DISP_W || py < HUD_H || py >= DISP_H) continue;
-        graphics_fill_rect(gr, (uint16_t)px, (uint16_t)py, 3, 3, pt->color);
+        sfb_fill(px, py, 3, 3, pt->color);
     }
 
     // Player
@@ -820,9 +917,8 @@ static void draw_gameplay(shooter_game_t *g)
         const uint16_t *spr = g->player.in_air
                                ? ROBOT_JUMP
                                : (g->player.run_frame == 0 ? ROBOT_RUN0 : ROBOT_RUN1);
-        graphics_draw_sprite_scaled(gr, (int32_t)g->player.x, (int32_t)g->player.y,
-                                    ROBOT_SPR_W, ROBOT_SPR_H, spr,
-                                    SHOOT_SPR_KEY, DISP_W, DISP_H, (uint8_t)SPR_SCALE);
+        sfb_sprite((int)g->player.x, (int)g->player.y,
+                   ROBOT_SPR_W, ROBOT_SPR_H, spr, SPR_SCALE);
     }
 
     // Projectiles
@@ -832,9 +928,8 @@ static void draw_gameplay(shooter_game_t *g)
         int py = (int)g->projectiles[i].y;
         if (px < 0 || px + PROJ_W > DISP_W) continue;
         if (py < HUD_H || py + PROJ_H > DISP_H) continue;
-        graphics_fill_rect(gr, (uint16_t)px,     (uint16_t)py,     (uint16_t)PROJ_W, (uint16_t)PROJ_H, C_CYAN);
-        if (px > 3)
-            graphics_fill_rect(gr, (uint16_t)(px - 3), (uint16_t)(py + 1), 3, (uint16_t)(PROJ_H - 2), C_PROJ_TRAIL);
+        sfb_fill(px, py, PROJ_W, PROJ_H, C_CYAN);
+        if (px > 3) sfb_fill(px - 3, py + 1, 3, PROJ_H - 2, C_PROJ_TRAIL);
     }
 
     // Score text particles (floating "+N")
@@ -845,7 +940,7 @@ static void draw_gameplay(shooter_game_t *g)
         if (px < 0 || px > DISP_W - 20 || py < HUD_H || py >= DISP_H) continue;
         char buf[8];
         snprintf(buf, sizeof(buf), "+%d", pt->value);
-        graphics_draw_text(gr, (uint16_t)px, (uint16_t)py, buf, pt->color, 1);
+        sfb_text(px, py, buf, pt->color, 1);
     }
 
     // HUD on top
@@ -853,83 +948,78 @@ static void draw_gameplay(shooter_game_t *g)
 
     // Red border on fresh damage
     if (g->player.invuln && g->player.invuln_ms > (INVULN_MS - 300u)) {
-        graphics_draw_rect(gr, 0, HUD_H, DISP_W, DISP_H - HUD_H, C_RED);
+        sfb_outline(0, HUD_H, DISP_W, DISP_H - HUD_H, C_RED);
     }
 }
 
-static void draw_stars(graphics_t *gr)
+static void draw_stars(void)
 {
     uint32_t r = 0xABCD1234u;
     for (int i = 0; i < 35; i++) {
         r = r * 1664525u + 1013904223u;
-        uint16_t sx = (uint16_t)(r % (uint32_t)DISP_W);
+        int sx = (int)(r % (uint32_t)DISP_W);
         r = r * 1664525u + 1013904223u;
-        uint16_t sy = (uint16_t)(r % 120u) + 8u;
-        graphics_fill_rect(gr, sx, sy, 1, 1, C_WHITE);
+        int sy = (int)(r % 120u) + 8;
+        sfb_fill(sx, sy, 1, 1, C_WHITE);
     }
 }
 
 static void draw_splash(shooter_game_t *g)
 {
-    graphics_t *gr = g->graphics;
-    graphics_fill_rect(gr, 0, 0, DISP_W, DISP_H, C_TITLE_BG);
-    draw_stars(gr);
+    sfb_fill(0, 0, DISP_W, DISP_H, C_TITLE_BG);
+    draw_stars();
 
-    graphics_draw_text(gr, (DISP_W - 4*12)/2,  60, "TINY",    C_YELLOW, 2);
-    graphics_draw_text(gr, (DISP_W - 7*12)/2,  82, "BLASTER", C_WHITE,  2);
-    graphics_draw_text(gr, (DISP_W - 6*12)/2, 104, "RUNNER",  C_CYAN,   2);
+    sfb_text((DISP_W - 4*12)/2,  60, "TINY",    C_YELLOW, 2);
+    sfb_text((DISP_W - 7*12)/2,  82, "BLASTER", C_WHITE,  2);
+    sfb_text((DISP_W - 6*12)/2, 104, "RUNNER",  C_CYAN,   2);
 
-    graphics_draw_sprite_scaled(gr, (DISP_W - (int32_t)ROBOT_DRAW_W) / 2, 135,
-                                ROBOT_SPR_W, ROBOT_SPR_H, ROBOT_RUN0,
-                                SHOOT_SPR_KEY, DISP_W, DISP_H, (uint8_t)SPR_SCALE);
+    sfb_sprite((DISP_W - ROBOT_DRAW_W) / 2, 135,
+               ROBOT_SPR_W, ROBOT_SPR_H, ROBOT_RUN0, SPR_SCALE);
 
     if ((g->state_ms / 500u) % 2u == 0u) {
-        graphics_draw_text(gr, (DISP_W - 14*6)/2, 195, "PRESS A BUTTON", C_WHITE, 1);
+        sfb_text((DISP_W - 14*6)/2, 195, "PRESS A BUTTON", C_WHITE, 1);
     }
 }
 
 static void draw_menu(shooter_game_t *g)
 {
-    graphics_t *gr = g->graphics;
-    graphics_fill_rect(gr, 0, 0, DISP_W, DISP_H, C_TITLE_BG);
-    draw_stars(gr);
+    sfb_fill(0, 0, DISP_W, DISP_H, C_TITLE_BG);
+    draw_stars();
 
-    graphics_draw_text(gr, (DISP_W - 4*12)/2,  25, "TINY",    C_YELLOW, 2);
-    graphics_draw_text(gr, (DISP_W - 7*12)/2,  47, "BLASTER", C_WHITE,  2);
-    graphics_draw_text(gr, (DISP_W - 6*12)/2,  69, "RUNNER",  C_CYAN,   2);
+    sfb_text((DISP_W - 4*12)/2,  25, "TINY",    C_YELLOW, 2);
+    sfb_text((DISP_W - 7*12)/2,  47, "BLASTER", C_WHITE,  2);
+    sfb_text((DISP_W - 6*12)/2,  69, "RUNNER",  C_CYAN,   2);
 
-    graphics_draw_sprite_scaled(gr, (DISP_W - (int32_t)ROBOT_DRAW_W) / 2, 98,
-                                ROBOT_SPR_W, ROBOT_SPR_H, ROBOT_RUN1,
-                                SHOOT_SPR_KEY, DISP_W, DISP_H, (uint8_t)SPR_SCALE);
+    sfb_sprite((DISP_W - ROBOT_DRAW_W) / 2, 98,
+               ROBOT_SPR_W, ROBOT_SPR_H, ROBOT_RUN1, SPR_SCALE);
 
-    graphics_draw_text(gr, 10, 150, "LEFT  START", C_YELLOW, 1);
-    graphics_draw_text(gr, 10, 163, "RIGHT MENU",  C_GRAY,   1);
+    sfb_text(10, 150, "LEFT  START", C_YELLOW, 1);
+    sfb_text(10, 163, "RIGHT MENU",  C_GRAY,   1);
 
     char buf[20];
     snprintf(buf, sizeof(buf), "BEST  %05ld", (long)g->hi_score);
-    graphics_draw_text(gr, 10, 180, buf, C_WHITE, 1);
+    sfb_text(10, 180, buf, C_WHITE, 1);
 }
 
 static void draw_gameover(shooter_game_t *g)
 {
-    graphics_t *gr = g->graphics;
-    graphics_fill_rect(gr, 0, 0, DISP_W, DISP_H, 0x2000u);
+    sfb_fill(0, 0, DISP_W, DISP_H, 0x2000u);
 
-    graphics_draw_text(gr, (DISP_W - 9*12)/2, 55, "GAME OVER", C_RED, 2);
+    sfb_text((DISP_W - 9*12)/2, 55, "GAME OVER", C_RED, 2);
 
     char buf[20];
     snprintf(buf, sizeof(buf), "SCORE %05ld", (long)g->score);
-    graphics_draw_text(gr, (DISP_W - 11*6)/2, 106, buf, C_WHITE, 1);
+    sfb_text((DISP_W - 11*6)/2, 106, buf, C_WHITE, 1);
 
     snprintf(buf, sizeof(buf), "BEST  %05ld", (long)g->hi_score);
-    graphics_draw_text(gr, (DISP_W - 11*6)/2, 119, buf, C_YELLOW, 1);
+    sfb_text((DISP_W - 11*6)/2, 119, buf, C_YELLOW, 1);
 
     if (g->score > 0 && g->score >= g->hi_score && (g->state_ms / 400u) % 2u == 0u) {
-        graphics_draw_text(gr, (DISP_W - 12*6)/2, 137, "NEW HI SCORE", C_CYAN, 1);
+        sfb_text((DISP_W - 12*6)/2, 137, "NEW HI SCORE", C_CYAN, 1);
     }
 
-    graphics_draw_text(gr, 10, 182, "LEFT  RETRY", C_WHITE, 1);
-    graphics_draw_text(gr, 10, 195, "RIGHT MENU",  C_GRAY,  1);
+    sfb_text(10, 182, "LEFT  RETRY", C_WHITE, 1);
+    sfb_text(10, 195, "RIGHT MENU",  C_GRAY,  1);
 }
 
 // ---------------------------------------------------------------
@@ -943,5 +1033,6 @@ esp_err_t shooter_game_render(shooter_game_t *game)
     case SG_STATE_PLAY:     draw_gameplay(game); break;
     case SG_STATE_GAMEOVER: draw_gameover(game); break;
     }
-    return ESP_OK;
+    return graphics_draw_bitmap(game->graphics, 0, 0, DISP_W, DISP_H,
+                                s_fb, (size_t)DISP_W * DISP_H);
 }
