@@ -30,7 +30,6 @@ typedef enum {
 // Player
 // ---------------------------------------------------------------
 typedef struct {
-    float    x;              // screen X (left edge of sprite)
     float    y;              // screen Y (top edge of sprite), float for sub-pixel
     float    vy;             // vertical velocity px/frame (negative = upward)
     bool     in_air;

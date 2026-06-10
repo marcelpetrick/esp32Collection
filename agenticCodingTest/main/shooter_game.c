@@ -353,7 +353,6 @@ static void reset_play(shooter_game_t *g)
     memset(g->particles,   0, sizeof(g->particles));
 
     g->player = (sg_player_t){
-        .x                  = PLAYER_FIXED_X,
         .y                  = (float)PLAYER_GND_Y,
         .vy                 = 0.0f,
         .in_air             = false,
@@ -527,7 +526,7 @@ esp_err_t shooter_game_handle_input(shooter_game_t *game,
                     p->in_air       = true;
                     p->left_held    = true;
                     p->left_hold_ms = 0;
-                    spawn_dust(game, p->x + ROBOT_DRAW_W / 2.0f, (float)GROUND_Y);
+                    spawn_dust(game, PLAYER_FIXED_X + ROBOT_DRAW_W / 2.0f, (float)GROUND_Y);
                 }
             }
             if (ev->type == BUTTON_EVENT_RELEASED && ev->id == BUTTON_ID_LEFT) {
@@ -540,7 +539,7 @@ esp_err_t shooter_game_handle_input(shooter_game_t *game,
                         if (!game->projectiles[pi].active) {
                             game->projectiles[pi] = (sg_projectile_t){
                                 .active = true,
-                                .x      = p->x + ROBOT_DRAW_W,
+                                .x      = PLAYER_FIXED_X + ROBOT_DRAW_W,
                                 .y      = p->y + (float)ROBOT_DRAW_H / 2.0f - (float)PROJ_H / 2.0f,
                             };
                             break;
@@ -605,7 +604,7 @@ esp_err_t shooter_game_update(shooter_game_t *game, uint32_t frame, uint32_t dt_
     p->vy += GRAVITY;
     p->y  += p->vy;
     if (p->y >= (float)PLAYER_GND_Y) {
-        if (p->in_air) spawn_dust(game, p->x + ROBOT_DRAW_W / 2.0f, (float)GROUND_Y);
+        if (p->in_air) spawn_dust(game, PLAYER_FIXED_X + ROBOT_DRAW_W / 2.0f, (float)GROUND_Y);
         p->y      = (float)PLAYER_GND_Y;
         p->vy     = 0.0f;
         p->in_air = false;
@@ -748,7 +747,7 @@ esp_err_t shooter_game_update(shooter_game_t *game, uint32_t frame, uint32_t dt_
         if (!e->active) continue;
         float ew = (float)EBOT_DRAW_W;
         float eh = (float)EBOT_DRAW_H;
-        if (aabb(p->x + 4, p->y + 4, (float)ROBOT_DRAW_W - 8, (float)ROBOT_DRAW_H - 8,
+        if (aabb(PLAYER_FIXED_X + 4, p->y + 4, (float)ROBOT_DRAW_W - 8, (float)ROBOT_DRAW_H - 8,
                  e->x + 2, e->y + 2, ew - 4, eh - 4)) {
             e->active = false;
             player_take_damage(game);
@@ -761,7 +760,7 @@ esp_err_t shooter_game_update(shooter_game_t *game, uint32_t frame, uint32_t dt_
         if (!o->active) continue;
         float ow = (o->type == SG_OBS_ROCK) ? (float)ROCK_DRAW_W  : (float)CRATE_DRAW_W;
         float oh = (o->type == SG_OBS_ROCK) ? (float)ROCK_DRAW_H  : (float)CRATE_DRAW_H;
-        if (aabb(p->x + 4, p->y + 4, (float)ROBOT_DRAW_W - 8, (float)ROBOT_DRAW_H - 8,
+        if (aabb(PLAYER_FIXED_X + 4, p->y + 4, (float)ROBOT_DRAW_W - 8, (float)ROBOT_DRAW_H - 8,
                  o->x + 2, o->y, ow - 4, oh)) {
             o->active = false;
             player_take_damage(game);
@@ -772,7 +771,7 @@ esp_err_t shooter_game_update(shooter_game_t *game, uint32_t frame, uint32_t dt_
     for (int ci = 0; ci < SG_MAX_COINS; ci++) {
         sg_coin_t *c = &game->coins[ci];
         if (!c->active) continue;
-        if (aabb(p->x + 2, p->y + 2, (float)ROBOT_DRAW_W - 4, (float)ROBOT_DRAW_H - 4,
+        if (aabb(PLAYER_FIXED_X + 2, p->y + 2, (float)ROBOT_DRAW_W - 4, (float)ROBOT_DRAW_H - 4,
                  c->x, c->y, (float)COIN_DRAW_W, (float)COIN_DRAW_H)) {
             c->active = false;
             game->score += SCORE_COIN;
@@ -920,7 +919,7 @@ static void draw_gameplay(shooter_game_t *g)
         const uint16_t *spr = g->player.in_air
                                ? ROBOT_JUMP
                                : (g->player.run_frame == 0 ? ROBOT_RUN0 : ROBOT_RUN1);
-        sfb_sprite((int)g->player.x, (int)g->player.y,
+        sfb_sprite(PLAYER_FIXED_X, (int)g->player.y,
                    ROBOT_SPR_W, ROBOT_SPR_H, spr, SPR_SCALE);
     }
 
