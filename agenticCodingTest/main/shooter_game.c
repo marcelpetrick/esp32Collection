@@ -13,6 +13,15 @@
 static const char *TAG = "shooter_game";
 
 // ---------------------------------------------------------------
+// Pool sizes (must match array dimensions in shooter_game.h)
+// ---------------------------------------------------------------
+#define SG_MAX_PROJECTILES  3
+#define SG_MAX_ENEMIES      4
+#define SG_MAX_COINS        12
+#define SG_MAX_OBSTACLES    4
+#define SG_MAX_PARTICLES    24
+
+// ---------------------------------------------------------------
 // Layout
 // ---------------------------------------------------------------
 #define DISP_W          BOARD_DISPLAY_WIDTH

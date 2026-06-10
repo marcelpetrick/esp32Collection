@@ -8,15 +8,6 @@
 #include "graphics.h"
 
 // ---------------------------------------------------------------
-// Pool sizes
-// ---------------------------------------------------------------
-#define SG_MAX_PROJECTILES  3
-#define SG_MAX_ENEMIES      4
-#define SG_MAX_COINS        12
-#define SG_MAX_OBSTACLES    4
-#define SG_MAX_PARTICLES    24
-
-// ---------------------------------------------------------------
 // Game states
 // ---------------------------------------------------------------
 typedef enum {
@@ -129,13 +120,13 @@ typedef struct {
     sg_state_t  state;
     uint32_t    state_ms;     // time in current state
 
-    // gameplay
+    // gameplay — pool sizes are SG_MAX_* in shooter_game.c
     sg_player_t     player;
-    sg_projectile_t projectiles[SG_MAX_PROJECTILES];
-    sg_enemy_t      enemies[SG_MAX_ENEMIES];
-    sg_coin_t       coins[SG_MAX_COINS];
-    sg_obstacle_t   obstacles[SG_MAX_OBSTACLES];
-    sg_particle_t   particles[SG_MAX_PARTICLES];
+    sg_projectile_t projectiles[3];
+    sg_enemy_t      enemies[4];
+    sg_coin_t       coins[12];
+    sg_obstacle_t   obstacles[4];
+    sg_particle_t   particles[24];
 
     int32_t  score;
     int32_t  hi_score;
