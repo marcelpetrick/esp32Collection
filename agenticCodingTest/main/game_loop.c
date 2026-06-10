@@ -116,6 +116,10 @@ esp_err_t game_loop_run(button_input_t *buttons, const game_loop_config_t *confi
             max_render_ms = 0;
         }
 
+        if (config->stop_requested != NULL && *config->stop_requested) {
+            return ESP_OK;
+        }
+
         next_frame_us += frame_period_us;
         if (esp_timer_get_time() < next_frame_us) {
             wait_until_us(next_frame_us);

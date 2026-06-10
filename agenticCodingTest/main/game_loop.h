@@ -3,6 +3,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <stdbool.h>
+
 #include "button_input.h"
 #include "esp_err.h"
 
@@ -16,6 +18,7 @@ typedef struct {
     game_loop_input_cb_t on_input;
     game_loop_step_cb_t on_update;
     game_loop_step_cb_t on_render;
+    volatile bool *stop_requested;  /* set to true from any context to exit the loop cleanly */
 } game_loop_config_t;
 
 esp_err_t game_loop_run(button_input_t *buttons, const game_loop_config_t *config);
