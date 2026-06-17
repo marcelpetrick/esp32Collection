@@ -251,12 +251,24 @@ run_dependency_check() {
         return 1
     fi
 
-    if run_with_log "${log_path}" idf.py -C "${ROOT_DIR}" update-dependencies --check; then
+    if [[ ! -f "${ROOT_DIR}/dependencies.lock" ]]; then
+        DEPS_DETAILS="dependencies.lock missing; run: idf.py update-dependencies"
+        return 1
+    fi
+
+    local lock_before lock_after
+    lock_before="$(md5sum "${ROOT_DIR}/dependencies.lock" | awk '{print $1}')"
+
+    run_with_log "${log_path}" idf.py -C "${ROOT_DIR}" update-dependencies
+
+    lock_after="$(md5sum "${ROOT_DIR}/dependencies.lock" | awk '{print $1}')"
+
+    if [[ "${lock_before}" == "${lock_after}" ]]; then
         DEPS_DETAILS="dependencies consistent with lock"
         return 0
     fi
 
-    DEPS_DETAILS="dependency lock mismatch; run: idf.py update-dependencies"
+    DEPS_DETAILS="lock was stale and has been updated; commit the new dependencies.lock"
     return 1
 }
 
@@ -318,6 +330,24 @@ run_monitor() {
     idf.py -C "${ROOT_DIR}" -p "${DEVICE}" monitor
 }
 
+run_clang_format_check_bg() {
+    local out_file="$1"
+    local ret_file="$2"
+    run_clang_format_check
+    local ret=$?
+    printf '%s\n' "${CLANG_FORMAT_DETAILS}" > "${out_file}"
+    printf '%d\n' "${ret}" > "${ret_file}"
+}
+
+run_cppcheck_bg() {
+    local out_file="$1"
+    local ret_file="$2"
+    run_cppcheck
+    local ret=$?
+    printf '%s\n' "${CPPCHECK_DETAILS}" > "${out_file}"
+    printf '%d\n' "${ret}" > "${ret_file}"
+}
+
 main() {
     local exit_code=1
     local clang_format_ret cppcheck_ret
@@ -332,8 +362,23 @@ main() {
     fi
 
     if [[ "${IDF_ENV_OK}" -eq 1 ]]; then
-        clang_format_ret=0
-        run_clang_format_check || clang_format_ret=$?
+        mkdir -p "${PIPELINE_LOG_DIR}"
+        local cf_out="${PIPELINE_LOG_DIR}/cf_details" cf_ret="${PIPELINE_LOG_DIR}/cf_ret"
+        local cpp_out="${PIPELINE_LOG_DIR}/cpp_details" cpp_ret="${PIPELINE_LOG_DIR}/cpp_ret"
+
+        run_clang_format_check_bg "${cf_out}" "${cf_ret}" &
+        local cf_pid=$!
+        run_cppcheck_bg "${cpp_out}" "${cpp_ret}" &
+        local cpp_pid=$!
+
+        wait "${cf_pid}"
+        clang_format_ret="$(cat "${cf_ret}" 2>/dev/null || printf '1')"
+        CLANG_FORMAT_DETAILS="$(cat "${cf_out}" 2>/dev/null || printf 'no output')"
+
+        wait "${cpp_pid}"
+        cppcheck_ret="$(cat "${cpp_ret}" 2>/dev/null || printf '1')"
+        CPPCHECK_DETAILS="$(cat "${cpp_out}" 2>/dev/null || printf 'no output')"
+
         if [[ "${clang_format_ret}" -eq 2 ]]; then
             mark_result "clang-format" "SKIP" "${CLANG_FORMAT_DETAILS}"
         elif [[ "${clang_format_ret}" -eq 0 ]]; then
@@ -343,8 +388,6 @@ main() {
             mark_result "clang-format" "FAIL" "${CLANG_FORMAT_DETAILS}"
         fi
 
-        cppcheck_ret=0
-        run_cppcheck || cppcheck_ret=$?
         if [[ "${cppcheck_ret}" -eq 2 ]]; then
             mark_result "cppcheck" "SKIP" "${CPPCHECK_DETAILS}"
         elif [[ "${cppcheck_ret}" -eq 0 ]]; then

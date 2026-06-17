@@ -51,7 +51,7 @@ clang-format         : PASS 0 violations
 cppcheck             : PASS 0 findings
 Build                : PASS 960832 bytes (938.3 KB)
 Dep Hash Check       : PASS dependencies consistent with lock
-Size Report          : PASS ...
+Size Report          : PASS binary: 960832 bytes (938.3 KB)
 Flash                : SKIP Pass --flash to enable
 Monitor              : SKIP Pass --monitor to enable
 =============================================
