@@ -30,19 +30,38 @@ http://192.168.4.1/stream
 
 ## Toolchain
 
-Built with **ESP-IDF** (Espressif IoT Development Framework) in C. No Arduino, no MicroPython.
+Built with **ESP-IDF v5.5.4** in C. No Arduino, no MicroPython.
 
-- ESP-IDF v5.x
-- Components: `esp32-camera`, `esp_http_server`, `esp_wifi`
+- Components: `espressif/esp32-camera` (managed, pinned in `dependencies.lock`), `esp_http_server`, `esp_wifi`
+
+## Local Pipeline
+
+```bash
+./localPipeline.sh            # lint + build + dep check
+./localPipeline.sh --flash    # also flash to /dev/ttyUSB0
+./localPipeline.sh --monitor  # also open serial monitor
+```
+
+Stages and expected output on a clean tree:
+
+```
+========== Local Pipeline Summary ==========
+IDF Environment      : PASS idf.py available after sourcing export.sh
+clang-format         : PASS 0 violations
+cppcheck             : PASS 0 findings
+Build                : PASS 960832 bytes (938.3 KB)
+Dep Hash Check       : PASS dependencies consistent with lock
+Size Report          : PASS ...
+Flash                : SKIP Pass --flash to enable
+Monitor              : SKIP Pass --monitor to enable
+=============================================
+```
 
 ## Build & Flash
 
 ```bash
 # Set up ESP-IDF environment (once per shell)
-. $IDF_PATH/export.sh
-
-# Configure
-idf.py set-target esp32
+source ~/.local/opt/esp-idf-v5.5.4/export.sh
 
 # Build
 idf.py build
@@ -66,12 +85,16 @@ idf.py -p /dev/ttyUSB0 monitor
 ```
 esp32cam/
 ├── main/
-│   ├── main.c          # App entry, Wi-Fi AP + HTTP server init
-│   ├── camera.c        # OV2640 init and frame capture
-│   ├── stream.c        # MJPEG stream handler
+│   ├── main.c            # App entry — Wi-Fi AP + HTTP server
+│   ├── camera.c/h        # OV2640 init (AI-Thinker pin mapping)
+│   ├── stream.c/h        # MJPEG stream handler
 │   └── CMakeLists.txt
 ├── CMakeLists.txt
-├── sdkconfig           # ESP-IDF config (generated)
-├── esp32cam_model.md   # Hardware probe results
+├── sdkconfig.defaults    # PSRAM, partition table, HTTP server tuning
+├── dependencies.lock     # Pinned component versions
+├── .cppcheck-suppress    # cppcheck suppressions for ESP-IDF macros
+├── .clang-format         # Google style, indent 4, col 100
+├── localPipeline.sh      # Local CI pipeline
+├── esp32cam_model.md     # Hardware probe results
 └── README.md
 ```
