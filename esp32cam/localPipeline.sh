@@ -5,6 +5,7 @@ set -o pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IDF_PATH_ROOT="/home/mpetrick/.local/opt/esp-idf-v5.5.4"
 DEVICE="/dev/ttyUSB0"
+CACHE_FILE="${ROOT_DIR}/.pipeline-cache"
 PIPELINE_LOG_DIR="${TMPDIR:-/tmp}/esp32cam-pipeline-$$"
 trap 'rm -rf "${PIPELINE_LOG_DIR}"' EXIT
 
@@ -28,20 +29,28 @@ BUILD_DETAILS=""
 DEPS_DETAILS=""
 SIZE_DETAILS=""
 
+CACHE_SOURCE_HASH=""
+CACHE_SOURCE_LINT_PASS=0
+CACHE_DEPS_HASH=""
+CACHE_DEPS_PASS=0
+
 print_usage() {
     cat <<EOF
 Usage: ./localPipeline.sh [--flash] [--monitor] [--help]
 
 Local ESP-IDF pipeline for esp32cam (dillycam):
   1. Source IDF environment and verify idf.py is available
-  2. clang-format check on main/*.c and main/*.h
-  3. cppcheck static analysis on main/
-  4. idf.py build — full firmware build
-  5. Component dependency hash check (idf.py update-dependencies --check)
+  2. clang-format check on main/*.c and main/*.h   (skipped if sources unchanged)
+  3. cppcheck static analysis on main/              (skipped if sources unchanged)
+  4. idf.py build — incremental via cmake/ninja
+  5. Component dependency hash check               (skipped if deps unchanged)
   6. Firmware size report (DRAM/IRAM/flash)
   7. Flash to /dev/ttyUSB0 (only with --flash; hold BOOT+RST before running)
   8. Monitor serial output (only with --monitor)
   9. Print final summary
+
+Incremental cache is stored in .pipeline-cache and skips lint/dep stages
+when the relevant files have not changed since the last successful run.
 
 Options:
   --flash    Flash firmware to ${DEVICE} after a successful build
@@ -107,6 +116,43 @@ parse_arguments() {
                 ;;
         esac
     done
+}
+
+compute_source_hash() {
+    find "${ROOT_DIR}/main" -maxdepth 1 \( -name "*.c" -o -name "*.h" \) -print0 \
+        | sort -z | xargs -0 md5sum 2>/dev/null \
+        | md5sum | awk '{print $1}'
+}
+
+compute_deps_hash() {
+    local files=()
+    [[ -f "${ROOT_DIR}/main/idf_component.yml" ]] && files+=("${ROOT_DIR}/main/idf_component.yml")
+    [[ -f "${ROOT_DIR}/dependencies.lock" ]]       && files+=("${ROOT_DIR}/dependencies.lock")
+    if [[ "${#files[@]}" -eq 0 ]]; then
+        printf 'no-deps-files\n'
+        return
+    fi
+    md5sum "${files[@]}" 2>/dev/null | md5sum | awk '{print $1}'
+}
+
+load_cache() {
+    if [[ -f "${CACHE_FILE}" ]]; then
+        # shellcheck source=/dev/null
+        source "${CACHE_FILE}" 2>/dev/null || true
+    fi
+}
+
+save_cache() {
+    local src_hash="$1"
+    local src_pass="$2"
+    local deps_hash="$3"
+    local deps_pass="$4"
+    cat > "${CACHE_FILE}" <<EOF
+CACHE_SOURCE_HASH="${src_hash}"
+CACHE_SOURCE_LINT_PASS=${src_pass}
+CACHE_DEPS_HASH="${deps_hash}"
+CACHE_DEPS_PASS=${deps_pass}
+EOF
 }
 
 source_idf_environment() {
@@ -230,7 +276,7 @@ extract_build_size() {
 }
 
 run_build() {
-    log "Running idf.py build."
+    log "Running idf.py build (incremental)."
     local log_path="${PIPELINE_LOG_DIR}/build.log"
 
     if run_with_log "${log_path}" idf.py -C "${ROOT_DIR}" build; then
@@ -351,8 +397,11 @@ run_cppcheck_bg() {
 main() {
     local exit_code=1
     local clang_format_ret cppcheck_ret
+    local current_source_hash current_deps_hash
+    local lint_cached=false deps_cached=false
 
     parse_arguments "$@"
+    load_cache
 
     if check_idf_environment; then
         IDF_ENV_OK=1
@@ -363,38 +412,51 @@ main() {
 
     if [[ "${IDF_ENV_OK}" -eq 1 ]]; then
         mkdir -p "${PIPELINE_LOG_DIR}"
-        local cf_out="${PIPELINE_LOG_DIR}/cf_details" cf_ret="${PIPELINE_LOG_DIR}/cf_ret"
-        local cpp_out="${PIPELINE_LOG_DIR}/cpp_details" cpp_ret="${PIPELINE_LOG_DIR}/cpp_ret"
 
-        run_clang_format_check_bg "${cf_out}" "${cf_ret}" &
-        local cf_pid=$!
-        run_cppcheck_bg "${cpp_out}" "${cpp_ret}" &
-        local cpp_pid=$!
+        current_source_hash="$(compute_source_hash)"
+        current_deps_hash="$(compute_deps_hash)"
 
-        wait "${cf_pid}"
-        clang_format_ret="$(cat "${cf_ret}" 2>/dev/null || printf '1')"
-        CLANG_FORMAT_DETAILS="$(cat "${cf_out}" 2>/dev/null || printf 'no output')"
-
-        wait "${cpp_pid}"
-        cppcheck_ret="$(cat "${cpp_ret}" 2>/dev/null || printf '1')"
-        CPPCHECK_DETAILS="$(cat "${cpp_out}" 2>/dev/null || printf 'no output')"
-
-        if [[ "${clang_format_ret}" -eq 2 ]]; then
-            mark_result "clang-format" "SKIP" "${CLANG_FORMAT_DETAILS}"
-        elif [[ "${clang_format_ret}" -eq 0 ]]; then
+        if [[ "${CACHE_SOURCE_LINT_PASS}" -eq 1 && "${current_source_hash}" == "${CACHE_SOURCE_HASH}" ]]; then
+            lint_cached=true
+            log "Lint cache hit — sources unchanged, skipping clang-format and cppcheck."
             CLANG_FORMAT_OK=1
-            mark_result "clang-format" "PASS" "${CLANG_FORMAT_DETAILS}"
-        else
-            mark_result "clang-format" "FAIL" "${CLANG_FORMAT_DETAILS}"
-        fi
-
-        if [[ "${cppcheck_ret}" -eq 2 ]]; then
-            mark_result "cppcheck" "SKIP" "${CPPCHECK_DETAILS}"
-        elif [[ "${cppcheck_ret}" -eq 0 ]]; then
             CPPCHECK_OK=1
-            mark_result "cppcheck" "PASS" "${CPPCHECK_DETAILS}"
+            mark_result "clang-format" "PASS" "0 violations (cached — sources unchanged)"
+            mark_result "cppcheck" "PASS" "0 findings (cached — sources unchanged)"
         else
-            mark_result "cppcheck" "FAIL" "${CPPCHECK_DETAILS}"
+            local cf_out="${PIPELINE_LOG_DIR}/cf_details" cf_ret="${PIPELINE_LOG_DIR}/cf_ret"
+            local cpp_out="${PIPELINE_LOG_DIR}/cpp_details" cpp_ret="${PIPELINE_LOG_DIR}/cpp_ret"
+
+            run_clang_format_check_bg "${cf_out}" "${cf_ret}" &
+            local cf_pid=$!
+            run_cppcheck_bg "${cpp_out}" "${cpp_ret}" &
+            local cpp_pid=$!
+
+            wait "${cf_pid}"
+            clang_format_ret="$(cat "${cf_ret}" 2>/dev/null || printf '1')"
+            CLANG_FORMAT_DETAILS="$(cat "${cf_out}" 2>/dev/null || printf 'no output')"
+
+            wait "${cpp_pid}"
+            cppcheck_ret="$(cat "${cpp_ret}" 2>/dev/null || printf '1')"
+            CPPCHECK_DETAILS="$(cat "${cpp_out}" 2>/dev/null || printf 'no output')"
+
+            if [[ "${clang_format_ret}" -eq 2 ]]; then
+                mark_result "clang-format" "SKIP" "${CLANG_FORMAT_DETAILS}"
+            elif [[ "${clang_format_ret}" -eq 0 ]]; then
+                CLANG_FORMAT_OK=1
+                mark_result "clang-format" "PASS" "${CLANG_FORMAT_DETAILS}"
+            else
+                mark_result "clang-format" "FAIL" "${CLANG_FORMAT_DETAILS}"
+            fi
+
+            if [[ "${cppcheck_ret}" -eq 2 ]]; then
+                mark_result "cppcheck" "SKIP" "${CPPCHECK_DETAILS}"
+            elif [[ "${cppcheck_ret}" -eq 0 ]]; then
+                CPPCHECK_OK=1
+                mark_result "cppcheck" "PASS" "${CPPCHECK_DETAILS}"
+            else
+                mark_result "cppcheck" "FAIL" "${CPPCHECK_DETAILS}"
+            fi
         fi
 
         if run_build; then
@@ -405,7 +467,12 @@ main() {
         fi
 
         if [[ "${BUILD_OK}" -eq 1 ]]; then
-            if run_dependency_check; then
+            if [[ "${CACHE_DEPS_PASS}" -eq 1 && "${current_deps_hash}" == "${CACHE_DEPS_HASH}" ]]; then
+                deps_cached=true
+                log "Dep cache hit — idf_component.yml and dependencies.lock unchanged."
+                DEPS_OK=1
+                mark_result "Dep Hash Check" "PASS" "dependencies consistent with lock (cached)"
+            elif run_dependency_check; then
                 DEPS_OK=1
                 mark_result "Dep Hash Check" "PASS" "${DEPS_DETAILS}"
             else
@@ -422,6 +489,19 @@ main() {
             mark_result "Dep Hash Check" "SKIP" "Skipped because build failed"
             mark_result "Size Report" "SKIP" "Skipped because build failed"
         fi
+
+        local new_lint_pass=0
+        [[ "${CLANG_FORMAT_OK}" -eq 1 && "${CPPCHECK_OK}" -eq 1 ]] && new_lint_pass=1
+
+        local new_deps_pass=0
+        [[ "${DEPS_OK}" -eq 1 ]] && new_deps_pass=1
+
+        local saved_source_hash="${current_source_hash}"
+        local saved_deps_hash="${current_deps_hash}"
+        [[ "${lint_cached}" == true ]] && saved_source_hash="${CACHE_SOURCE_HASH}"
+        [[ "${deps_cached}" == true ]] && saved_deps_hash="${CACHE_DEPS_HASH}"
+
+        save_cache "${saved_source_hash}" "${new_lint_pass}" "${saved_deps_hash}" "${new_deps_pass}"
     else
         mark_result "clang-format" "SKIP" "Skipped because IDF environment is unavailable"
         mark_result "cppcheck" "SKIP" "Skipped because IDF environment is unavailable"
