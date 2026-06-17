@@ -183,7 +183,7 @@ run_clang_format_check() {
 extract_cppcheck_details() {
     local log_path="$1"
     local finding_count
-    finding_count="$(grep -cE "\(warning\)|\(style\)|\(performance\)|\(error\)" "${log_path}" 2>/dev/null || true)"
+    finding_count="$(grep -cE ": (error|warning|style|performance):" "${log_path}" 2>/dev/null || true)"
     if [[ "${finding_count}" -eq 0 ]]; then
         printf '%s\n' "0 findings"
     else
@@ -200,9 +200,15 @@ run_cppcheck() {
         return 2
     fi
 
+    local suppress_args=()
+    if [[ -f "${ROOT_DIR}/.cppcheck-suppress" ]]; then
+        suppress_args=(--suppressions-list="${ROOT_DIR}/.cppcheck-suppress")
+    fi
+
     if run_with_log "${log_path}" cppcheck \
         --enable=warning,style,performance \
         --error-exitcode=1 \
+        "${suppress_args[@]}" \
         "${ROOT_DIR}/main/"; then
         CPPCHECK_DETAILS="$(extract_cppcheck_details "${log_path}")"
         return 0

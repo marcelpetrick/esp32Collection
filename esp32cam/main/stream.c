@@ -13,10 +13,8 @@ static const char* STREAM_PART =
     "Content-Type: image/jpeg\r\nContent-Length: %u\r\nX-Timestamp: %lld.%06lld\r\n\r\n";
 
 esp_err_t stream_handler(httpd_req_t* req) {
-    camera_fb_t* fb = NULL;
     esp_err_t res;
     char part_buf[128];
-    int64_t fr_start, fr_end;
 
     res = httpd_resp_set_type(req, STREAM_CONTENT_TYPE);
     if (res != ESP_OK) {
@@ -29,14 +27,14 @@ esp_err_t stream_handler(httpd_req_t* req) {
     ESP_LOGI(TAG, "Stream started");
 
     while (true) {
-        fb = esp_camera_fb_get();
+        camera_fb_t* fb = esp_camera_fb_get();
         if (!fb) {
             ESP_LOGE(TAG, "Camera capture failed");
             res = ESP_FAIL;
             break;
         }
 
-        fr_start = esp_timer_get_time();
+        int64_t fr_start = esp_timer_get_time();
 
         res = httpd_resp_send_chunk(req, STREAM_BOUNDARY, strlen(STREAM_BOUNDARY));
         if (res != ESP_OK) {
@@ -58,7 +56,7 @@ esp_err_t stream_handler(httpd_req_t* req) {
             break;
         }
 
-        fr_end = esp_timer_get_time();
+        int64_t fr_end = esp_timer_get_time();
         ESP_LOGD(TAG, "Frame %uKB %ums", fb->len / 1024, (uint32_t)((fr_end - fr_start) / 1000));
     }
 

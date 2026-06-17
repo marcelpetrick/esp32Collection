@@ -1,0 +1,3 @@
+// Suppress unknownMacro for ESP-IDF utility macros that cppcheck cannot resolve
+// without the full IDF include path.
+unknownMacro:main/main.c
