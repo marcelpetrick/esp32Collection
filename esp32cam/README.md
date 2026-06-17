@@ -19,7 +19,7 @@ Live MJPEG camera stream hosted directly from an ESP32-CAM over its own Wi-Fi ac
 | Setting  | Value      |
 |----------|------------|
 | SSID     | dillyCam   |
-| Password | foobar     |
+| Password | foobar12   |
 | IP       | 192.168.4.1|
 
 Connect your smartphone to the `dillyCam` network, then open:

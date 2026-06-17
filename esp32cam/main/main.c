@@ -16,7 +16,7 @@
 static const char* TAG = "dillycam";
 
 #define WIFI_SSID "dillyCam"
-#define WIFI_PASS "foobar"
+#define WIFI_PASS "foobar12"
 #define WIFI_CHANNEL 6
 #define WIFI_MAX_STA 4
 
