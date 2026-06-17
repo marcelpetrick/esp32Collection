@@ -1,8 +1,8 @@
 # dillyCam — ESP32-CAM HTTP Stream
 
-Live MJPEG camera stream hosted directly from an ESP32-CAM over its own Wi-Fi access point. Open the stream URL on any device on the same network — no router needed.
+Live MJPEG camera stream with full camera controls hosted directly from an ESP32-CAM over its own Wi-Fi access point. Open the web UI on any device on the same network — no router needed.
 
-**Status: working.** Stream verified on phone browser over the `dillyCam` AP.
+**Status: working.** Stream and control UI verified on phone browser over the `dillyCam` AP.
 
 ## Hardware
 
@@ -27,8 +27,10 @@ Live MJPEG camera stream hosted directly from an ESP32-CAM over its own Wi-Fi ac
 Connect your smartphone to the `dillyCam` network, then open:
 
 ```
-http://192.168.4.1/stream
+http://192.168.4.1/
 ```
+
+The web UI shows the live stream, FPS/frame-size/client stats, and controls for all OV2640 camera settings (brightness, contrast, saturation, sharpness, JPEG quality, exposure, gain, white balance, special effects, resolution, and pixel corrections). Direct stream access is also available at `http://192.168.4.1/stream`.
 
 ## Toolchain
 
@@ -51,9 +53,9 @@ Stages and expected output on a clean tree:
 IDF Environment      : PASS idf.py available after sourcing export.sh
 clang-format         : PASS 0 violations
 cppcheck             : PASS 0 findings
-Build                : PASS 960832 bytes (938.3 KB)
+Build                : PASS 980704 bytes (957.7 KB)
 Dep Hash Check       : PASS dependencies consistent with lock
-Size Report          : PASS binary: 960832 bytes (938.3 KB)
+Size Report          : PASS binary: 980704 bytes (957.7 KB)
 Flash                : SKIP Pass --flash to enable
 Monitor              : SKIP Pass --monitor to enable
 =============================================
@@ -122,7 +124,9 @@ esp32cam/
 ├── main/
 │   ├── main.c            # App entry — Wi-Fi AP + HTTP server
 │   ├── camera.c/h        # OV2640 init (AI-Thinker pin mapping)
-│   ├── stream.c/h        # MJPEG stream handler
+│   ├── stream.c/h        # MJPEG stream handler with FPS/stats tracking
+│   ├── web.c/h           # HTTP handlers: index, /ctrl, /stats
+│   ├── index.html        # Embedded web UI (dark theme, mobile-friendly)
 │   └── CMakeLists.txt
 ├── CMakeLists.txt
 ├── sdkconfig.defaults    # PSRAM, partition table, HTTP server tuning
