@@ -80,6 +80,39 @@ idf.py -p /dev/ttyUSB0 monitor
 3. Release **BOOT**
 4. Run `idf.py flash` within ~1 second
 
+### Serial port permissions
+
+The CH340 enumerates as `/dev/ttyUSB0` (owned by `root:uucp`). Access is needed for both flashing and the monitor.
+
+**Temporary fix** (lost on every replug):
+```bash
+sudo setfacl -m u:$USER:rw /dev/ttyUSB0
+```
+
+**Permanent fix** — add a udev rule so the ACL is applied automatically on plug-in:
+```bash
+echo 'SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", \
+  RUN+="/usr/bin/setfacl -m u:mpetrick:rw %E{DEVNAME}"' \
+  | sudo tee /etc/udev/rules.d/99-esp32cam-ch340.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger
+```
+
+After that, replugging the board grants access without any manual step.
+
+**Permanent fix (alternative)** — add your user to the `uucp` group (takes effect after next login):
+```bash
+sudo usermod -aG uucp $USER
+```
+
+### Port busy error
+
+If `idf.py flash` or `idf.py monitor` fails with `[Errno 11] Resource temporarily unavailable`, another process is holding the port. Find and kill it:
+```bash
+fuser /dev/ttyUSB0        # show PID holding the port
+kill <PID>
+```
+
 ## Project Structure
 
 ```
