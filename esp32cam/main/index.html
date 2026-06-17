@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dillyCam</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d0d0d;
+  color: #e0e0e0;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  min-height: 100vh;
+}
+
+h1 {
+  text-align: center;
+  padding: 14px 0 10px;
+  font-size: 1.3rem;
+  letter-spacing: 0.08em;
+  color: #00b4d8;
+}
+
+.stream-section {
+  background: #1a1a1a;
+  padding: 12px;
+  margin: 0 0 10px;
+}
+
+#stream {
+  display: block;
+  width: 100%;
+  max-height: 50vh;
+  object-fit: contain;
+  background: #000;
+  border-radius: 6px;
+}
+
+.stats-bar {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+
+.stat-pill {
+  flex: 1;
+  min-width: 90px;
+  background: #0d0d0d;
+  border-radius: 999px;
+  padding: 6px 14px;
+  text-align: center;
+  font-size: 0.82rem;
+  border: 1px solid #2a2a2a;
+}
+
+.stat-pill .stat-label {
+  color: #888;
+  font-size: 0.72rem;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.stat-pill .stat-value {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+#fps-value.fps-good { color: #22c55e; }
+#fps-value.fps-ok { color: #f97316; }
+#fps-value.fps-bad { color: #ef4444; }
+
+.reconnect-btn {
+  display: block;
+  width: 100%;
+  padding: 13px;
+  background: #00b4d8;
+  color: #0d0d0d;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  margin-top: 4px;
+}
+
+.reconnect-btn:active { background: #0096b4; }
+
+.controls {
+  padding: 0 10px 20px;
+}
+
+details {
+  background: #1a1a1a;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+summary {
+  padding: 14px 16px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  color: #00b4d8;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+
+summary::-webkit-details-marker { display: none; }
+
+summary::after {
+  content: '+';
+  font-size: 1.2rem;
+  font-weight: 400;
+  color: #555;
+  transition: transform 0.2s;
+}
+
+details[open] summary::after { content: '-'; }
+
+.section-body {
+  padding: 4px 14px 14px;
+}
+
+.ctrl-row {
+  padding: 10px 0;
+  border-top: 1px solid #222;
+}
+
+.ctrl-row:first-child { border-top: none; }
+
+.ctrl-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  min-height: 36px;
+}
+
+.ctrl-label {
+  font-size: 0.9rem;
+  color: #ccc;
+  flex: 1;
+}
+
+.ctrl-note {
+  font-size: 0.72rem;
+  color: #666;
+  display: block;
+}
+
+.value-badge {
+  background: #0d0d0d;
+  border: 1px solid #333;
+  border-radius: 5px;
+  padding: 3px 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #00b4d8;
+  min-width: 42px;
+  text-align: center;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: #333;
+  border-radius: 3px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #00b4d8;
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #00b4d8;
+  cursor: pointer;
+  border: none;
+}
+
+select {
+  background: #0d0d0d;
+  color: #e0e0e0;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.88rem;
+  min-width: 150px;
+  max-width: 180px;
+  cursor: pointer;
+  outline: none;
+}
+
+select:focus { border-color: #00b4d8; }
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #333;
+  border-radius: 28px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle-track::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 22px;
+  height: 22px;
+  background: #888;
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-track { background: #004d5e; }
+
+.toggle-switch input:checked + .toggle-track::before {
+  transform: translateX(22px);
+  background: #00b4d8;
+}
+</style>
+</head>
+<body>
+
+<h1>dillyCam</h1>
+
+<div class="stream-section">
+  <img id="stream" src="/stream" alt="Camera stream">
+
+  <div class="stats-bar">
+    <div class="stat-pill">
+      <span class="stat-label">FPS</span>
+      <span class="stat-value" id="fps-value">--</span>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-label">Frame Size</span>
+      <span class="stat-value" id="fb-value">-- KB</span>
+    </div>
+    <div class="stat-pill">
+      <span class="stat-label">Frames</span>
+      <span class="stat-value" id="frames-value">--</span>
+    </div>
+  </div>
+
+  <button class="reconnect-btn" onclick="reconnectStream()">Reconnect stream</button>
+</div>
+
+<div class="controls">
+
+  <details open>
+    <summary>Image</summary>
+    <div class="section-body">
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">Brightness</span>
+          <span class="value-badge" id="brightness-val">0</span>
+        </div>
+        <input type="range" id="brightness" min="-2" max="2" step="1" value="0"
+          oninput="updateBadge('brightness')"
+          onchange="sendCtrl('brightness', this.value)">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">Contrast</span>
+          <span class="value-badge" id="contrast-val">0</span>
+        </div>
+        <input type="range" id="contrast" min="-2" max="2" step="1" value="0"
+          oninput="updateBadge('contrast')"
+          onchange="sendCtrl('contrast', this.value)">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">Saturation</span>
+          <span class="value-badge" id="saturation-val">0</span>
+        </div>
+        <input type="range" id="saturation" min="-2" max="2" step="1" value="0"
+          oninput="updateBadge('saturation')"
+          onchange="sendCtrl('saturation', this.value)">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">Sharpness</span>
+          <span class="value-badge" id="sharpness-val">0</span>
+        </div>
+        <input type="range" id="sharpness" min="-2" max="2" step="1" value="0"
+          oninput="updateBadge('sharpness')"
+          onchange="sendCtrl('sharpness', this.value)">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">
+            JPEG Quality
+            <span class="ctrl-note">lower value = better quality</span>
+          </span>
+          <span class="value-badge" id="quality-val">12</span>
+        </div>
+        <input type="range" id="quality" min="4" max="63" step="1" value="12"
+          oninput="updateBadge('quality')"
+          onchange="sendCtrl('quality', this.value)">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">H-Mirror</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="hmirror" checked onchange="sendCtrl('hmirror', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">V-Flip</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="vflip" checked onchange="sendCtrl('vflip', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">Colorbar (Test pattern)</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="colorbar" onchange="sendCtrl('colorbar', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Exposure</summary>
+    <div class="section-body">
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">AEC (Auto Exposure)</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="exposure_ctrl" checked onchange="sendCtrl('exposure_ctrl', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">AEC2 (Night mode)</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="aec2" onchange="sendCtrl('aec2', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">AE Level</span>
+          <span class="value-badge" id="ae_level-val">0</span>
+        </div>
+        <input type="range" id="ae_level" min="-2" max="2" step="1" value="0"
+          oninput="updateBadge('ae_level')"
+          onchange="sendCtrl('ae_level', this.value)">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">
+            AEC Value
+            <span class="ctrl-note">manual exposure time</span>
+          </span>
+          <span class="value-badge" id="aec_value-val">300</span>
+        </div>
+        <input type="range" id="aec_value" min="0" max="1200" step="1" value="300"
+          oninput="updateBadge('aec_value')"
+          onchange="sendCtrl('aec_value', this.value)">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">AGC (Auto Gain)</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="gain_ctrl" checked onchange="sendCtrl('gain_ctrl', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">
+            AGC Gain
+            <span class="ctrl-note">manual gain value</span>
+          </span>
+          <span class="value-badge" id="agc_gain-val">0</span>
+        </div>
+        <input type="range" id="agc_gain" min="0" max="30" step="1" value="0"
+          oninput="updateBadge('agc_gain')"
+          onchange="sendCtrl('agc_gain', this.value)">
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">Gain Ceiling</span>
+          <select id="gainceiling" onchange="sendCtrl('gainceiling', this.value)">
+            <option value="0" selected>2x</option>
+            <option value="1">4x</option>
+            <option value="2">8x</option>
+            <option value="3">16x</option>
+            <option value="4">32x</option>
+            <option value="5">64x</option>
+            <option value="6">128x</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>White Balance</summary>
+    <div class="section-body">
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">AWB (Auto White Balance)</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="whitebal" checked onchange="sendCtrl('whitebal', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">AWB Gain</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="awb_gain" checked onchange="sendCtrl('awb_gain', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">WB Mode</span>
+          <select id="wb_mode" onchange="sendCtrl('wb_mode', this.value)">
+            <option value="0" selected>Auto</option>
+            <option value="1">Sunny</option>
+            <option value="2">Cloudy</option>
+            <option value="3">Office</option>
+            <option value="4">Home</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Special Effects</summary>
+    <div class="section-body">
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">Special Effect</span>
+          <select id="special_effect" onchange="sendCtrl('special_effect', this.value)">
+            <option value="0" selected>None</option>
+            <option value="1">Negative</option>
+            <option value="2">Grayscale</option>
+            <option value="3">Red Tint</option>
+            <option value="4">Green Tint</option>
+            <option value="5">Blue Tint</option>
+            <option value="6">Sepia</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Resolution</summary>
+    <div class="section-body">
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">Frame Size</span>
+          <select id="framesize" onchange="sendCtrl('framesize', this.value)">
+            <option value="1">QQVGA (160x120)</option>
+            <option value="4">HQVGA (240x176)</option>
+            <option value="6">QVGA (320x240)</option>
+            <option value="8">CIF (400x296)</option>
+            <option value="9">HVGA (480x320)</option>
+            <option value="10">VGA (640x480)</option>
+            <option value="11" selected>SVGA (800x600)</option>
+            <option value="12">XGA (1024x768)</option>
+            <option value="13">HD (1280x720)</option>
+            <option value="14">SXGA (1280x1024)</option>
+            <option value="15">UXGA (1600x1200)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <details>
+    <summary>Corrections</summary>
+    <div class="section-body">
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">BPC (Black Pixel Correction)</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="bpc" onchange="sendCtrl('bpc', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">WPC (White Pixel Correction)</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="wpc" checked onchange="sendCtrl('wpc', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">Raw GMA</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="raw_gma" checked onchange="sendCtrl('raw_gma', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">Lens Correction (LENC)</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="lenc" checked onchange="sendCtrl('lenc', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+      <div class="ctrl-row">
+        <div class="ctrl-header">
+          <span class="ctrl-label">DCW (Downsize EN)</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="dcw" checked onchange="sendCtrl('dcw', this.checked ? 1 : 0)">
+            <span class="toggle-track"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </details>
+
+</div>
+
+<script>
+function sendCtrl(name, value) {
+  fetch('/ctrl?var=' + name + '&val=' + value).catch(function() {});
+}
+
+function updateBadge(id) {
+  var el = document.getElementById(id);
+  document.getElementById(id + '-val').textContent = el.value;
+}
+
+function reconnectStream() {
+  var img = document.getElementById('stream');
+  img.src = '';
+  setTimeout(function() { img.src = '/stream'; }, 200);
+}
+
+function fetchStats() {
+  fetch('/stats')
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var fpsEl = document.getElementById('fps-value');
+      var fps = parseFloat(d.fps);
+      fpsEl.textContent = fps.toFixed(1);
+      fpsEl.className = 'stat-value ' + (fps >= 5 ? 'fps-good' : fps >= 1 ? 'fps-ok' : 'fps-bad');
+      document.getElementById('fb-value').textContent = (d.fb_size / 1024).toFixed(1) + ' KB';
+      document.getElementById('frames-value').textContent = d.frames;
+    })
+    .catch(function() {});
+}
+
+setInterval(fetchStats, 1000);
+fetchStats();
+</script>
+
+</body>
+</html>

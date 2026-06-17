@@ -12,6 +12,7 @@
 #include "freertos/task.h"
 #include "nvs_flash.h"
 #include "stream.h"
+#include "web.h"
 
 static const char* TAG = "dillycam";
 
@@ -66,29 +67,23 @@ static esp_err_t http_server_init(void) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 80;
-    /* Stream handler runs long; give it its own stack */
     config.stack_size = 8192;
+    config.max_uri_handlers = 8;
 
     ESP_ERROR_CHECK(httpd_start(&server, &config));
 
-    httpd_uri_t stream_uri = {
-        .uri = "/stream",
-        .method = HTTP_GET,
-        .handler = stream_handler,
-        .user_ctx = NULL,
+    httpd_uri_t uris[] = {
+        {.uri = "/", .method = HTTP_GET, .handler = index_handler, .user_ctx = NULL},
+        {.uri = "/stream", .method = HTTP_GET, .handler = stream_handler, .user_ctx = NULL},
+        {.uri = "/ctrl", .method = HTTP_GET, .handler = ctrl_handler, .user_ctx = NULL},
+        {.uri = "/stats", .method = HTTP_GET, .handler = stats_handler, .user_ctx = NULL},
     };
-    httpd_register_uri_handler(server, &stream_uri);
 
-    /* Root redirect to stream */
-    httpd_uri_t root_uri = {
-        .uri = "/",
-        .method = HTTP_GET,
-        .handler = stream_handler,
-        .user_ctx = NULL,
-    };
-    httpd_register_uri_handler(server, &root_uri);
+    for (size_t i = 0; i < sizeof(uris) / sizeof(uris[0]); i++) {
+        httpd_register_uri_handler(server, &uris[i]);
+    }
 
-    ESP_LOGI(TAG, "HTTP server up — http://192.168.4.1/stream");
+    ESP_LOGI(TAG, "HTTP server up — http://192.168.4.1/");
     return ESP_OK;
 }
 
@@ -104,6 +99,5 @@ void app_main(void) {
     ESP_ERROR_CHECK(wifi_ap_init());
     ESP_ERROR_CHECK(http_server_init());
 
-    ESP_LOGI(TAG, "dillyCam ready — connect to '%s' then open http://192.168.4.1/stream",
-             WIFI_SSID);
+    ESP_LOGI(TAG, "dillyCam ready — connect to '%s' then open http://192.168.4.1/", WIFI_SSID);
 }

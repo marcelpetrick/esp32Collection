@@ -1,3 +1,5 @@
 // Suppress unknownMacro for ESP-IDF utility macros that cppcheck cannot resolve
 // without the full IDF include path.
 unknownMacro:main/main.c
+// GCC asm() label syntax for linker-embedded binary symbols is not parsed by cppcheck
+syntaxError:main/web.c
