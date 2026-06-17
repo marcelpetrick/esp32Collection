@@ -2,6 +2,8 @@
 
 Live MJPEG camera stream hosted directly from an ESP32-CAM over its own Wi-Fi access point. Open the stream URL on any device on the same network — no router needed.
 
+**Status: working.** Stream verified on phone browser over the `dillyCam` AP.
+
 ## Hardware
 
 | Component        | Details                                      |
