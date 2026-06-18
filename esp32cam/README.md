@@ -4,6 +4,9 @@ Live MJPEG camera stream with full camera controls hosted directly from an ESP32
 
 **Status: working.** Stream and control UI verified on phone browser over the `dillyCam` AP.
 
+## Current state web-UI
+![](media/currentStateWebUi.jpg)
+
 ## Hardware
 
 | Component        | Details                                      |

@@ -168,6 +168,24 @@ details[open] summary::after { content: '-'; }
   text-align: center;
 }
 
+.reset-btn {
+  background: none;
+  border: 1px solid #444;
+  border-radius: 5px;
+  color: #666;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 3px 6px;
+  transition: color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.reset-btn:active {
+  color: #00b4d8;
+  border-color: #00b4d8;
+}
+
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -290,6 +308,7 @@ select:focus { border-color: #00b4d8; }
         <div class="ctrl-header">
           <span class="ctrl-label">Brightness</span>
           <span class="value-badge" id="brightness-val">0</span>
+          <button class="reset-btn" onclick="resetCtrl('brightness', 0)" title="Reset">↺</button>
         </div>
         <input type="range" id="brightness" min="-2" max="2" step="1" value="0"
           oninput="updateBadge('brightness')"
@@ -299,6 +318,7 @@ select:focus { border-color: #00b4d8; }
         <div class="ctrl-header">
           <span class="ctrl-label">Contrast</span>
           <span class="value-badge" id="contrast-val">0</span>
+          <button class="reset-btn" onclick="resetCtrl('contrast', 0)" title="Reset">↺</button>
         </div>
         <input type="range" id="contrast" min="-2" max="2" step="1" value="0"
           oninput="updateBadge('contrast')"
@@ -308,6 +328,7 @@ select:focus { border-color: #00b4d8; }
         <div class="ctrl-header">
           <span class="ctrl-label">Saturation</span>
           <span class="value-badge" id="saturation-val">0</span>
+          <button class="reset-btn" onclick="resetCtrl('saturation', 0)" title="Reset">↺</button>
         </div>
         <input type="range" id="saturation" min="-2" max="2" step="1" value="0"
           oninput="updateBadge('saturation')"
@@ -317,6 +338,7 @@ select:focus { border-color: #00b4d8; }
         <div class="ctrl-header">
           <span class="ctrl-label">Sharpness</span>
           <span class="value-badge" id="sharpness-val">0</span>
+          <button class="reset-btn" onclick="resetCtrl('sharpness', 0)" title="Reset">↺</button>
         </div>
         <input type="range" id="sharpness" min="-2" max="2" step="1" value="0"
           oninput="updateBadge('sharpness')"
@@ -329,6 +351,7 @@ select:focus { border-color: #00b4d8; }
             <span class="ctrl-note">lower value = better quality</span>
           </span>
           <span class="value-badge" id="quality-val">12</span>
+          <button class="reset-btn" onclick="resetCtrl('quality', 12)" title="Reset">↺</button>
         </div>
         <input type="range" id="quality" min="4" max="63" step="1" value="12"
           oninput="updateBadge('quality')"
@@ -389,6 +412,7 @@ select:focus { border-color: #00b4d8; }
         <div class="ctrl-header">
           <span class="ctrl-label">AE Level</span>
           <span class="value-badge" id="ae_level-val">0</span>
+          <button class="reset-btn" onclick="resetCtrl('ae_level', 0)" title="Reset">↺</button>
         </div>
         <input type="range" id="ae_level" min="-2" max="2" step="1" value="0"
           oninput="updateBadge('ae_level')"
@@ -401,6 +425,7 @@ select:focus { border-color: #00b4d8; }
             <span class="ctrl-note">manual exposure time</span>
           </span>
           <span class="value-badge" id="aec_value-val">300</span>
+          <button class="reset-btn" onclick="resetCtrl('aec_value', 300)" title="Reset">↺</button>
         </div>
         <input type="range" id="aec_value" min="0" max="1200" step="1" value="300"
           oninput="updateBadge('aec_value')"
@@ -422,6 +447,7 @@ select:focus { border-color: #00b4d8; }
             <span class="ctrl-note">manual gain value</span>
           </span>
           <span class="value-badge" id="agc_gain-val">0</span>
+          <button class="reset-btn" onclick="resetCtrl('agc_gain', 0)" title="Reset">↺</button>
         </div>
         <input type="range" id="agc_gain" min="0" max="30" step="1" value="0"
           oninput="updateBadge('agc_gain')"
@@ -585,6 +611,13 @@ function sendCtrl(name, value) {
 function updateBadge(id) {
   var el = document.getElementById(id);
   document.getElementById(id + '-val').textContent = el.value;
+}
+
+function resetCtrl(id, defaultVal) {
+  var el = document.getElementById(id);
+  el.value = defaultVal;
+  document.getElementById(id + '-val').textContent = defaultVal;
+  sendCtrl(id, defaultVal);
 }
 
 function reconnectStream() {
